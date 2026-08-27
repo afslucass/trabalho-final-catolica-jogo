@@ -2,9 +2,10 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Audio;
+using Microsoft.Xna.Framework.Media;
 using GameCore;
 using GameCore.Graphics;
-using GameCore.Input;
 
 namespace jogo;
 
@@ -28,6 +29,15 @@ public class Game1 : Core
     // Tracks the velocity of the bat.
     private Vector2 _batVelocity;
 
+        // The sound effect to play when the bat bounces off the edge of the screen.
+    private SoundEffect _bounceSoundEffect;
+
+    // The sound effect to play when the slime eats a bat.
+    private SoundEffect _collectSoundEffect;
+
+    // The background theme song
+    private Song _themeSong;
+
     public Game1() : base("Jogo", 1920, 1080, true)
     {
 
@@ -45,6 +55,9 @@ public class Game1 : Core
 
         // Assign the initial random velocity to the bat.
         AssignRandomBatVelocity();
+
+        // Start playing the background music.
+        Audio.PlaySong(_themeSong);
     }
 
     protected override void LoadContent()
@@ -59,6 +72,15 @@ public class Game1 : Core
         // Create the bat animated sprite from the atlas.
         _bat = atlas.CreateAnimatedSprite("bat-animation");
         _bat.Scale = new Vector2(4.0f, 4.0f);
+
+        // Load the bounce sound effect
+        _bounceSoundEffect = Content.Load<SoundEffect>("audio/bounce");
+
+        // Load the collect sound effect
+        _collectSoundEffect = Content.Load<SoundEffect>("audio/collect");
+
+        // Load the background theme music.
+        _themeSong = Content.Load<Song>("audio/theme");
     }
 
     protected override void Update(GameTime gameTime)
@@ -157,6 +179,9 @@ public class Game1 : Core
         {
             normal.Normalize();
             _batVelocity = Vector2.Reflect(_batVelocity, normal);
+
+            // Play the bounce sound effect.
+            Audio.PlaySoundEffect(_bounceSoundEffect);
         }
 
         _batPosition = newBatPosition;
@@ -178,6 +203,9 @@ public class Game1 : Core
 
             // Assign a new random velocity to the bat
             AssignRandomBatVelocity();
+
+            // Play the collect sound effect.
+            Audio.PlaySoundEffect(_collectSoundEffect);
         }
     }
 
@@ -226,6 +254,26 @@ public class Game1 : Core
         if (Input.Keyboard.IsKeyDown(Keys.D) || Input.Keyboard.IsKeyDown(Keys.Right))
         {
             _slimePosition.X += speed;
+        }
+
+        // If the M key is pressed, toggle mute state for audio.
+        if (Input.Keyboard.WasKeyJustPressed(Keys.M))
+        {
+            Audio.ToggleMute();
+        }
+
+        // If the + button is pressed, increase the volume.
+        if (Input.Keyboard.WasKeyJustPressed(Keys.OemPlus))
+        {
+            Audio.SongVolume += 0.1f;
+            Audio.SoundEffectVolume += 0.1f;
+        }
+
+        // If the - button was pressed, decrease the volume.
+        if (Input.Keyboard.WasKeyJustPressed(Keys.OemMinus))
+        {
+            Audio.SongVolume -= 0.1f;
+            Audio.SoundEffectVolume -= 0.1f;
         }
     }
 
