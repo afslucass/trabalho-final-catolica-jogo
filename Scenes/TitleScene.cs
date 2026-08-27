@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework.Input;
 using GameCore;
 using GameCore.Scenes;
 
-namespace jogo.Scenes;
+namespace TestGame.Scenes;
 
 public class TitleScene : Scene
     {

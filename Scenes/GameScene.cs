@@ -7,7 +7,7 @@ using GameCore;
 using GameCore.Graphics;
 using GameCore.Scenes;
 
-namespace jogo.Scenes;
+namespace TestGame.Scenes;
 
 public class GameScene : Scene
 {

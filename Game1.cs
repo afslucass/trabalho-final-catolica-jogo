@@ -1,8 +1,8 @@
 ﻿using Microsoft.Xna.Framework.Media;
 using GameCore;
-using jogo.Scenes;
+using TestGame.Scenes;
 
-namespace jogo;
+namespace TestGame;
 
 public class Game1 : Core
 {
