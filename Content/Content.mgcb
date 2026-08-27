@@ -34,6 +34,14 @@
 /processorParam:Version=3.8.5.1
 /build:audio/theme.ogg
 
+#begin fonts/04B_30_5x.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/processorParam:Version=3.8.5.1
+/build:fonts/04B_30_5x.spritefont
+
 #begin fonts/04B_30.spritefont
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
