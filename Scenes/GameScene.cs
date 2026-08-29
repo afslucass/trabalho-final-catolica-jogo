@@ -14,6 +14,22 @@ public class GameScene : Scene
  // Defines the slime animated sprite.
     private AnimatedSprite _slime;
 
+    private Sprite _slimeWall;
+
+    readonly private int[,] map =
+    {
+        { 1, 1, 1, 1, 1, 1, 1, 1 },
+        { 1, 0, 0, 0, 0, 0, 0, 1 },
+        { 1, 0, 0, 0, 0, 0, 0, 1 },
+        { 1, 0, 0, 1, 1, 0, 0, 1 },
+        { 1, 0, 0, 1, 1, 0, 0, 1 },
+        { 1, 0, 0, 0, 0, 0, 0, 1 },
+        { 1, 0, 0, 0, 0, 0, 0, 1 },
+        { 1, 1, 1, 1, 1, 1, 1, 1 },
+    };
+
+    private Circle?[,] mapSlimesBounds;
+
     // Defines the bat animated sprite.
     private AnimatedSprite _bat;
 
@@ -67,6 +83,28 @@ public class GameScene : Scene
         // Set the origin of the text so it is left-centered.
         float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
         _scoreTextOrigin = new Vector2(0, scoreTextYOrigin);
+
+        mapSlimesBounds = new Circle?[map.GetLength(0), map.GetLength(1)];
+        for (int row = 0; row < map.GetLength(0); row++)
+        {
+            for (int col = 0; col < map.GetLength(1); col++)
+            {
+                if (map[row, col] == 1)
+                {
+                    float x = col * _slime.Width;
+                    float y = row * _slime.Height;
+                    mapSlimesBounds[row, col] = new Circle(
+                        (int)(x + _slime.Width * 0.5f),
+                        (int)(y + _slime.Height * 0.5f),
+                        (int)(_slime.Width * 0.5f)
+                    );
+                }
+                else
+                {
+                    mapSlimesBounds[row, col] = null;
+                }
+            }
+        }
     }
     
     public override void LoadContent()
@@ -77,10 +115,14 @@ public class GameScene : Scene
         // Create the slime animated sprite from the atlas.
         _slime = atlas.CreateAnimatedSprite("slime-animation");
         _slime.Scale = new Vector2(4.0f, 4.0f);
+        _slimePosition = new Vector2(_slime.Width*2, _slime.Height*2);
 
         // Create the bat animated sprite from the atlas.
         _bat = atlas.CreateAnimatedSprite("bat-animation");
         _bat.Scale = new Vector2(4.0f, 4.0f);
+
+        _slimeWall = atlas.CreateSprite("slime-2");
+        _slimeWall.Scale = new Vector2(4.0f, 4.0f);
 
         // Load the bounce sound effect
         _bounceSoundEffect = Content.Load<SoundEffect>("audio/bounce");
@@ -107,7 +149,7 @@ public class GameScene : Scene
         CheckKeyboardInput();
 
         // Create a bounding rectangle for the screen.
-        Rectangle screenBounds = new Rectangle(
+        Rectangle screenBounds = new(
             0,
             0,
             Core.GraphicsDevice.PresentationParameters.BackBufferWidth,
@@ -115,7 +157,7 @@ public class GameScene : Scene
         );
 
         // Creating a bounding circle for the slime
-        Circle slimeBounds = new Circle(
+        Circle slimeBounds = new(
             (int)(_slimePosition.X + (_slime.Width * 0.5f)),
             (int)(_slimePosition.Y + (_slime.Height * 0.5f)),
             (int)(_slime.Width * 0.5f)
@@ -140,6 +182,39 @@ public class GameScene : Scene
         else if (slimeBounds.Bottom > screenBounds.Bottom)
         {
             _slimePosition.Y = screenBounds.Bottom - _slime.Height;
+        }
+
+        foreach (Circle? mapSlimeBoundsNullable in mapSlimesBounds)
+        {
+            if (!mapSlimeBoundsNullable.HasValue)
+                continue;
+
+            Circle wall = mapSlimeBoundsNullable.Value;
+            Vector2 slimeCenter = new Vector2(
+                _slimePosition.X + _slime.Width * 0.5f,
+                _slimePosition.Y + _slime.Height * 0.5f
+            );
+            Vector2 wallCenter = new Vector2(
+                wall.X,
+                wall.Y
+            );
+
+            Vector2 direction = slimeCenter - wallCenter;
+            float distance = direction.Length();
+            float minDistance = slimeBounds.Radius + wall.Radius;
+
+            if (distance < minDistance)
+            {
+                if (distance == 0)
+                {
+                    direction = Vector2.UnitX;
+                    distance = 1;
+                }
+
+                direction.Normalize();
+                float overlap = minDistance - distance;
+                _slimePosition += direction * overlap;
+            }
         }
 
         // Calculate the new position of the bat based on the velocity.
@@ -300,6 +375,18 @@ public class GameScene : Scene
 
         // Draw the bat sprite.
         _bat.Draw(Core.SpriteBatch, _batPosition);
+
+        for (int row = 0; row < map.GetLength(0); row++)
+        {
+            for (int col = 0; col < map.GetLength(1); col++)
+            {
+                if(map[row, col] == 1)
+                {
+                    Vector2 _slimeWallPosition = new(col * _slimeWall.Height, row * _slimeWall.Width);
+                    _slimeWall.Draw(Core.SpriteBatch, _slimeWallPosition);
+                }
+            }
+        }
 
         // Draw the score
         Core.SpriteBatch.DrawString(
