@@ -1,2 +1,2 @@
-﻿using var game = new jogo.Game1();
+﻿using var game = new TestGame.Game1();
 game.Run();
