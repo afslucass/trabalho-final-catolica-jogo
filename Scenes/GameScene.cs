@@ -7,6 +7,7 @@ using GameCore;
 using GameCore.Graphics;
 using GameCore.Scenes;
 using GameCore.Camera;
+using GameCore.CustomMouseCursor;
 
 namespace TestGame.Scenes;
 
@@ -116,6 +117,7 @@ public class GameScene : Scene
     {   
         // Create the texture atlas from the XML configuration file
         TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
+        MouseCursorAtlas cursorAtlas = MouseCursorAtlas.FromFile(Content, "cursor/cursor-atlas-definition.xml");
 
         // Create the slime animated sprite from the atlas.
         _slime = atlas.CreateAnimatedSprite("slime-animation");
@@ -137,6 +139,8 @@ public class GameScene : Scene
 
         // Load the font
         _font = Content.Load<SpriteFont>("fonts/04B_30");
+        
+        cursorAtlas.SetCursor("cheese");
     }
 
 
