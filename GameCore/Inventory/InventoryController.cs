@@ -4,14 +4,14 @@ using GameCore.Graphics;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
 
-namespace GameCore.Inventary;
+namespace GameCore.Inventory;
 
-public class InventaryController
+public class InventoryController
 {
     private Dictionary<string, Sprite> _sprites;
     private const int RENDER_GAP = 12;
 
-    public InventaryController()
+    public InventoryController()
     {
         _sprites = new Dictionary<string, Sprite>();
     }

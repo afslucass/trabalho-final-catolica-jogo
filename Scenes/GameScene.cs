@@ -9,7 +9,7 @@ using GameCore.Scenes;
 using GameCore.Camera;
 using GameCore.CustomMouseCursor;
 using GameCore.Input;
-using GameCore.Inventary;
+using GameCore.Inventory;
 
 namespace TestGame.Scenes;
 
@@ -81,7 +81,7 @@ public class GameScene : Scene
     // Defines the origin used when drawing the score text.
     private Vector2 _scoreTextOrigin;
 
-    private InventaryController _inventary;
+    private InventoryController _inventory;
 
     public override void Initialize()
     {
@@ -89,7 +89,7 @@ public class GameScene : Scene
 
         base.Initialize();
 
-        _inventary = new InventaryController();
+        _inventory = new InventoryController();
 
         _camera = new Camera2D();
 
@@ -327,13 +327,13 @@ public class GameScene : Scene
             );
             if (_mouseBounds.Intersects(_arthurBatBounds))
             {
-                _inventary.CollectItem("arthur-bat", _batItemArthur);
+                _inventory.CollectItem("arthur-bat", _batItemArthur);
                 Core.Audio.PlaySoundEffect(_collectSoundEffect);
                 _batItemArthur.Scale = new Vector2(0f, 0f);
             }
             if (_mouseBounds.Intersects(_pedroBatBounds))
             {
-                _inventary.CollectItem("pedro-bat", _batItemPedro);
+                _inventory.CollectItem("pedro-bat", _batItemPedro);
                 _batItemPedro.Scale = new Vector2(0f, 0f);
                 Core.Audio.PlaySoundEffect(_collectSoundEffect);
             }
@@ -454,7 +454,7 @@ public class GameScene : Scene
             SpriteEffects.None, // effects
             0.0f                // layerDepth
         );
-        _inventary.Draw(Core.SpriteBatch, _scoreTextPosition);
+        _inventory.Draw(Core.SpriteBatch, _scoreTextPosition);
         Core.SpriteBatch.End();
 
         base.Draw(gameTime);
