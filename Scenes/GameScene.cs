@@ -6,11 +6,14 @@ using Microsoft.Xna.Framework.Input;
 using GameCore;
 using GameCore.Graphics;
 using GameCore.Scenes;
+using GameCore.Camera;
 
 namespace TestGame.Scenes;
 
 public class GameScene : Scene
 {
+    private Camera2D _camera;
+
  // Defines the slime animated sprite.
     private AnimatedSprite _slime;
 
@@ -68,6 +71,8 @@ public class GameScene : Scene
         // TODO: Add your initialization logic here
 
         base.Initialize();
+
+        _camera = new Camera2D();
 
         // Set the initial position of the bat to be 10px
         // to the right of the slime.
@@ -137,6 +142,8 @@ public class GameScene : Scene
 
     public override void Update(GameTime gameTime)
     {
+        _camera.Follow(_slimePosition, Core.GraphicsDevice.Viewport);
+
         // Update the slime animated sprite.
         _slime.Update(gameTime);
 
@@ -368,7 +375,7 @@ public class GameScene : Scene
         Core.GraphicsDevice.Clear(Color.CornflowerBlue);
 
         // Begin the sprite batch to prepare for rendering.
-        Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+        Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp, transformMatrix: _camera.TransformMatrix);
 
         // Draw the slime sprite.
         _slime.Draw(Core.SpriteBatch, _slimePosition);
