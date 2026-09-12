@@ -20,16 +20,23 @@ public class GameScene : Scene
 
     private Sprite _slimeWall;
 
-    readonly private int[,] map =
-    {
-        { 1, 1, 1, 1, 1, 1, 1, 1 },
-        { 1, 0, 0, 0, 0, 0, 0, 1 },
-        { 1, 0, 0, 0, 0, 0, 0, 1 },
-        { 1, 0, 0, 1, 1, 0, 0, 1 },
-        { 1, 0, 0, 1, 1, 0, 0, 1 },
-        { 1, 0, 0, 0, 0, 0, 0, 1 },
-        { 1, 0, 0, 0, 0, 0, 0, 1 },
-        { 1, 1, 1, 1, 1, 1, 1, 1 },
+    readonly private int[,] map = {
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+    { 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1 },
+    { 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 },
+    { 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1 },
+    { 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1 },
+    { 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1 },
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1 },
+    { 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1 },
+    { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 },
+    { 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1 },
+    { 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1 },
+    { 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
     };
 
     private Circle?[,] mapSlimesBounds;
@@ -173,27 +180,6 @@ public class GameScene : Scene
             (int)(_slimePosition.Y + (_slime.Height * 0.5f)),
             (int)(_slime.Width * 0.5f)
         );
-
-        // Use distance based checks to determine if the slime is within the
-        // bounds of the game screen, and if it is outside that screen edge,
-        // move it back inside.
-        if (slimeBounds.Left < screenBounds.Left)
-        {
-            _slimePosition.X = screenBounds.Left;
-        }
-        else if (slimeBounds.Right > screenBounds.Right)
-        {
-            _slimePosition.X = screenBounds.Right - _slime.Width;
-        }
-
-        if (slimeBounds.Top < screenBounds.Top)
-        {
-            _slimePosition.Y = screenBounds.Top;
-        }
-        else if (slimeBounds.Bottom > screenBounds.Bottom)
-        {
-            _slimePosition.Y = screenBounds.Bottom - _slime.Height;
-        }
 
         foreach (Circle? mapSlimeBoundsNullable in mapSlimesBounds)
         {
