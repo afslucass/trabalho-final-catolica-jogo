@@ -399,7 +399,13 @@ public class GameScene : Scene
             }
         }
 
-        // Draw the score
+
+        // Always end the sprite batch when finished.
+        Core.SpriteBatch.End();
+
+        // Renders GUI
+        Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+         // Draw the score
         Core.SpriteBatch.DrawString(
             _font,              // spriteFont
             $"Score: {_score}", // text
@@ -411,8 +417,6 @@ public class GameScene : Scene
             SpriteEffects.None, // effects
             0.0f                // layerDepth
         );
-
-        // Always end the sprite batch when finished.
         Core.SpriteBatch.End();
 
         base.Draw(gameTime);
