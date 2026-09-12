@@ -1,3 +1,4 @@
+using GameCore.Camera;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
@@ -204,5 +205,13 @@ public class MouseInfo
             CurrentState.XButton1,
             CurrentState.XButton2
         );
+    }
+
+    public Vector2 GetWorldPosition(Camera2D world)
+    {
+        Matrix _inverseTransform = Matrix.Invert(world.TransformMatrix);
+        Vector2 mouseScreenPos = new Vector2(Position.X, Position.Y);
+        Vector2 _mouseWorldPosition = Vector2.Transform(mouseScreenPos, _inverseTransform);
+        return _mouseWorldPosition;
     }
 }

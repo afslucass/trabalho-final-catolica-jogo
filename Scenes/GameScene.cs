@@ -8,6 +8,8 @@ using GameCore.Graphics;
 using GameCore.Scenes;
 using GameCore.Camera;
 using GameCore.CustomMouseCursor;
+using GameCore.Input;
+using GameCore.Inventary;
 
 namespace TestGame.Scenes;
 
@@ -37,12 +39,17 @@ public class GameScene : Scene
     { 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1 },
     { 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
-    };
+};
 
     private Circle?[,] mapSlimesBounds;
 
     // Defines the bat animated sprite.
     private AnimatedSprite _bat;
+
+    private Sprite _batItemArthur;
+    private Sprite _batItemPedro;
+    private Vector2 _batItemPedroPosition;
+    private Vector2 _batItemArthurPosition;
 
     // Tracks the position of the slime.
     private Vector2 _slimePosition;
@@ -74,11 +81,15 @@ public class GameScene : Scene
     // Defines the origin used when drawing the score text.
     private Vector2 _scoreTextOrigin;
 
+    private InventaryController _inventary;
+
     public override void Initialize()
     {
         // TODO: Add your initialization logic here
 
         base.Initialize();
+
+        _inventary = new InventaryController();
 
         _camera = new Camera2D();
 
@@ -137,6 +148,13 @@ public class GameScene : Scene
 
         _slimeWall = atlas.CreateSprite("slime-2");
         _slimeWall.Scale = new Vector2(4.0f, 4.0f);
+
+        _batItemArthur = atlas.CreateSprite("bat-1");
+        _batItemArthur.Scale = new Vector2(4.0f, 4.0f);
+        _batItemPedro = atlas.CreateSprite("bat-2");
+        _batItemPedro.Scale = new Vector2(4.0f, 4.0f);
+        _batItemArthurPosition = new Vector2(_batItemArthur.Width*10, _batItemArthur.Height*13);
+        _batItemPedroPosition = new Vector2(_batItemPedro.Width*4, _batItemPedro.Height*7);
 
         // Load the bounce sound effect
         _bounceSoundEffect = Content.Load<SoundEffect>("audio/bounce");
@@ -289,6 +307,37 @@ public class GameScene : Scene
             // Increase the player's score.
             _score += 100;
         }
+
+        if(Core.Input.Mouse.WasButtonJustPressed(MouseButton.Left))
+        {
+            Circle _mouseBounds = new Circle(
+                (int)Core.Input.Mouse.GetWorldPosition(_camera).X, 
+                (int)Core.Input.Mouse.GetWorldPosition(_camera).Y, 
+                1
+            );
+            Circle _arthurBatBounds = new Circle(
+                (int)(_batItemArthurPosition.X + (_batItemArthur.Width * 0.5f)),
+                (int)(_batItemArthurPosition.Y + (_batItemArthur.Height * 0.5f)),
+                (int)(_batItemArthur.Width * 0.5f)
+            );
+            Circle _pedroBatBounds = new Circle(
+                (int)(_batItemPedroPosition.X + (_batItemPedro.Width * 0.5f)),
+                (int)(_batItemPedroPosition.Y + (_batItemPedro.Height * 0.5f)),
+                (int)(_batItemPedro.Width * 0.5f)
+            );
+            if (_mouseBounds.Intersects(_arthurBatBounds))
+            {
+                _inventary.CollectItem("arthur-bat", _batItemArthur);
+                Core.Audio.PlaySoundEffect(_collectSoundEffect);
+                _batItemArthur.Scale = new Vector2(0f, 0f);
+            }
+            if (_mouseBounds.Intersects(_pedroBatBounds))
+            {
+                _inventary.CollectItem("pedro-bat", _batItemPedro);
+                _batItemPedro.Scale = new Vector2(0f, 0f);
+                Core.Audio.PlaySoundEffect(_collectSoundEffect);
+            }
+        }
     }
 
     private void AssignRandomBatVelocity()
@@ -385,13 +434,15 @@ public class GameScene : Scene
             }
         }
 
+        _batItemArthur.Draw(Core.SpriteBatch, _batItemArthurPosition);
+        _batItemPedro.Draw(Core.SpriteBatch, _batItemPedroPosition);
 
         // Always end the sprite batch when finished.
         Core.SpriteBatch.End();
 
         // Renders GUI
         Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
-         // Draw the score
+        // Draw the score
         Core.SpriteBatch.DrawString(
             _font,              // spriteFont
             $"Score: {_score}", // text
@@ -403,6 +454,7 @@ public class GameScene : Scene
             SpriteEffects.None, // effects
             0.0f                // layerDepth
         );
+        _inventary.Draw(Core.SpriteBatch, _scoreTextPosition);
         Core.SpriteBatch.End();
 
         base.Draw(gameTime);
