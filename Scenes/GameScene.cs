@@ -37,7 +37,7 @@ public class GameScene : Scene
     { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 },
     { 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1 },
     { 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1 },
-    { 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 };
 
@@ -153,7 +153,7 @@ public class GameScene : Scene
         _batItemArthur.Scale = new Vector2(4.0f, 4.0f);
         _batItemPedro = atlas.CreateSprite("bat-2");
         _batItemPedro.Scale = new Vector2(4.0f, 4.0f);
-        _batItemArthurPosition = new Vector2(_batItemArthur.Width*10, _batItemArthur.Height*13);
+        _batItemArthurPosition = new Vector2(_batItemArthur.Width*10, _batItemArthur.Height*14);
         _batItemPedroPosition = new Vector2(_batItemPedro.Width*4, _batItemPedro.Height*7);
 
         // Load the bounce sound effect
@@ -306,6 +306,25 @@ public class GameScene : Scene
 
             // Increase the player's score.
             _score += 100;
+            
+        }
+        // Define the column and row indices for the map exit tile.
+        int exitCol = 15; 
+        int exitRow = 14; 
+        // Get the tile dimensions based on the wall sprite size.
+        int tileWidth = (int)_slimeWall.Width;
+        int tileHeight = (int)_slimeWall.Height;
+        // Create a bounding circle for the exit tile.
+        Circle exitBounds = new Circle(
+            (int)(exitCol * tileWidth + tileWidth * 0.5f),
+            (int)(exitRow * tileHeight + tileHeight * 0.5f),
+            (int)(tileWidth * 0.5f)
+        );
+        // Check for collision between the slime and the exit point to trigger a scene change.
+        if (slimeBounds.Intersects(exitBounds))
+        {
+            Core.ChangeScene(new Scene_recepcao());
+            return;
         }
 
         if(Core.Input.Mouse.WasButtonJustPressed(MouseButton.Left))
