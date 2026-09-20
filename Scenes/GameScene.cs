@@ -36,8 +36,8 @@ public class GameScene : Scene
     { 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1 },
     { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 },
     { 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1 },
-    { 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1 },
-    { 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 };
 
@@ -81,7 +81,14 @@ public class GameScene : Scene
     // Defines the origin used when drawing the score text.
     private Vector2 _scoreTextOrigin;
 
+    private const string PRESS_E_INTERECT = "Press E for go to the next scene";
+
+    // Defines the position to draw the press E text at.
+    private Vector2 _pressEInterectPos;
+    private bool _isAtExit;
+
     private InventoryController _inventory;
+    private Scene_recepcao _activeScene;
 
     public override void Initialize()
     {
@@ -103,6 +110,10 @@ public class GameScene : Scene
         // Set the position of the score text to align to the left edge of the
         // room bounds, and to vertically be at the center of the first tile.
         _scoreTextPosition = new Vector2(60, 60);
+    
+        // Set the position of the press E text.
+        Vector2 size = _font.MeasureString(PRESS_E_INTERECT);
+        _pressEInterectPos = new Vector2(Core.GraphicsDevice.PresentationParameters.BackBufferWidth / 2, 800);
 
         // Set the origin of the text so it is left-centered.
         float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
@@ -140,7 +151,7 @@ public class GameScene : Scene
         // Create the slime animated sprite from the atlas.
         _slime = atlas.CreateAnimatedSprite("slime-animation");
         _slime.Scale = new Vector2(4.0f, 4.0f);
-        _slimePosition = new Vector2(_slime.Width*2, _slime.Height*2);
+        _slimePosition = new Vector2(_slime.Width*2, _slime.Height*14);
 
         // Create the bat animated sprite from the atlas.
         _bat = atlas.CreateAnimatedSprite("bat-animation");
@@ -321,12 +332,12 @@ public class GameScene : Scene
             (int)(tileWidth * 0.5f)
         );
         // Check for collision between the slime and the exit point to trigger a scene change.
-        if (slimeBounds.Intersects(exitBounds))
+        _isAtExit = slimeBounds.Intersects(exitBounds);
+        if (_isAtExit && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
         {
             Core.ChangeScene(new Scene_recepcao());
             return;
         }
-
         if(Core.Input.Mouse.WasButtonJustPressed(MouseButton.Left))
         {
             Circle _mouseBounds = new Circle(
@@ -473,6 +484,20 @@ public class GameScene : Scene
             SpriteEffects.None, // effects
             0.0f                // layerDepth
         );
+        if (_isAtExit)
+        {
+            Core.SpriteBatch.DrawString(
+                _font,
+                PRESS_E_INTERECT,
+                _pressEInterectPos,
+                Color.Black,
+                0.0f,
+                _font.MeasureString(PRESS_E_INTERECT) * 0.5f,
+                1.0f,
+                SpriteEffects.None,
+                0.0f
+            );
+        }
         _inventory.Draw(Core.SpriteBatch, _scoreTextPosition);
         Core.SpriteBatch.End();
 
