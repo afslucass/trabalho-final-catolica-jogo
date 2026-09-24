@@ -89,7 +89,8 @@ public class GameScene : Scene
 
         base.Initialize();
 
-        _inventory = new InventoryController();
+        _inventory = GameSession.Inventory;
+        _score = GameSession.Score;
 
         _camera = new Camera2D();
 
@@ -306,6 +307,8 @@ public class GameScene : Scene
 
             // Increase the player's score.
             _score += 100;
+            GameSession.Score += 100;
+            _score = GameSession.Score;
             
         }
         // Define the column and row indices for the map exit tile.
