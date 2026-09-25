@@ -85,7 +85,8 @@ public class GameScene : Scene
 
     // Defines the position to draw the press E text at.
     private Vector2 _pressEInterectPos;
-    private bool _isAtExit;
+    private bool _isAtExitRecepcao;
+    private bool _isAtExitCaldeirao;
 
     private InventoryController _inventory;
     private Scene_recepcao _activeScene;
@@ -321,6 +322,7 @@ public class GameScene : Scene
         }
         // Define the column and row indices for the map exit tile.
         int exitCol = 15; 
+        int exitCol_1 = 1;
         int exitRow = 14; 
         // Get the tile dimensions based on the wall sprite size.
         int tileWidth = (int)_slimeWall.Width;
@@ -331,11 +333,22 @@ public class GameScene : Scene
             (int)(exitRow * tileHeight + tileHeight * 0.5f),
             (int)(tileWidth * 0.5f)
         );
+        Circle exitBounds_1 = new Circle(
+            (int)(exitCol_1 * tileWidth + tileWidth * 0.5f),
+            (int)(exitRow * tileHeight + tileHeight * 0.5f),
+            (int)(tileWidth * 0.5f)
+        );
         // Check for collision between the slime and the exit point to trigger a scene change.
-        _isAtExit = slimeBounds.Intersects(exitBounds);
-        if (_isAtExit && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
+        _isAtExitRecepcao = slimeBounds.Intersects(exitBounds);
+        if (_isAtExitRecepcao && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
         {
             Core.ChangeScene(new Scene_recepcao());
+            return;
+        }
+        _isAtExitCaldeirao = slimeBounds.Intersects(exitBounds_1);
+        if (_isAtExitCaldeirao && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
+        {
+            Core.ChangeScene(new Scene_caldeirao());
             return;
         }
         if(Core.Input.Mouse.WasButtonJustPressed(MouseButton.Left))
@@ -484,7 +497,7 @@ public class GameScene : Scene
             SpriteEffects.None, // effects
             0.0f                // layerDepth
         );
-        if (_isAtExit)
+        if (_isAtExitCaldeirao || _isAtExitRecepcao)
         {
             Core.SpriteBatch.DrawString(
                 _font,
