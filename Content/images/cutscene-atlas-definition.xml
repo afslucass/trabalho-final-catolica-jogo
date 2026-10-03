@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas>
+    <Texture>images/cutscene-atlas</Texture>
+    <Regions>
+        <Region name="image-1" x="0" y="0" width="600" height="400" />
+        <Region name="image-2" x="0" y="400" width="600" height="400" />
+    </Regions>
+    <Animations></Animations>
+</TextureAtlas>

@@ -10,6 +10,8 @@ using GameCore.Camera;
 using GameCore.CustomMouseCursor;
 using GameCore.Input;
 using GameCore.Inventory;
+using GameCore.Cutscene;
+using System.Collections.Generic;
 
 namespace TestGame.Scenes;
 
@@ -83,6 +85,8 @@ public class GameScene : Scene
 
     private InventoryController _inventory;
 
+    private CutsceneController cutscene;
+
     public override void Initialize()
     {
         // TODO: Add your initialization logic here
@@ -136,6 +140,7 @@ public class GameScene : Scene
     {   
         // Create the texture atlas from the XML configuration file
         TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
+        TextureAtlas cutsceneAtlas = TextureAtlas.FromFile(Content, "images/cutscene-atlas-definition.xml");
         MouseCursorAtlas cursorAtlas = MouseCursorAtlas.FromFile(Content, "cursor/cursor-atlas-definition.xml");
 
         // Create the slime animated sprite from the atlas.
@@ -165,6 +170,28 @@ public class GameScene : Scene
 
         // Load the font
         _font = Content.Load<SpriteFont>("fonts/04B_30");
+
+        List<Step> steps = new List<Step>();
+        steps.Add(new Step
+        {
+           text = "Texto de texte",
+           image = cutsceneAtlas.CreateSprite("image-1"),
+           fadeDuration = 1000,
+           hasImageTransition = true,
+           hasTextTransition = true,
+           durationInMillis = 2000,
+        });
+        steps.Add(new Step
+        {
+           text = "texto 2",
+           image = cutsceneAtlas.CreateSprite("image-2"),
+           fadeDuration = 1000,
+           hasImageTransition = false,
+           hasTextTransition = false,
+           durationInMillis = 3000,
+        });
+        cutscene = new CutsceneController(steps, Color.Black, Color.White, _font, Core.GraphicsDevice);
+        cutscene.Start();
         
         cursorAtlas.SetCursor("cheese");
     }
@@ -477,6 +504,10 @@ public class GameScene : Scene
             0.0f                // layerDepth
         );
         _inventory.Draw(Core.SpriteBatch, _scoreTextPosition);
+        Core.SpriteBatch.End();
+
+        Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+        cutscene.Draw(Core.SpriteBatch, gameTime);
         Core.SpriteBatch.End();
 
         base.Draw(gameTime);
