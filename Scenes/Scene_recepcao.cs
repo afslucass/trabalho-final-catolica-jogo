@@ -195,31 +195,7 @@ public class Scene_recepcao : Scene
 
     private void CheckKeyboardInput()
     {
-        float speed = MOVEMENT_SPEED;
-        if (Core.Input.Keyboard.IsKeyDown(Keys.Space))
-        {
-            speed *= 1.5f;
-        }
-
-        if (Core.Input.Keyboard.IsKeyDown(Keys.W) || Core.Input.Keyboard.IsKeyDown(Keys.Up))
-        {
-            _slimePosition.Y -= speed;
-        }
-
-        if (Core.Input.Keyboard.IsKeyDown(Keys.S) || Core.Input.Keyboard.IsKeyDown(Keys.Down))
-        {
-            _slimePosition.Y += speed;
-        }
-
-        if (Core.Input.Keyboard.IsKeyDown(Keys.A) || Core.Input.Keyboard.IsKeyDown(Keys.Left))
-        {
-            _slimePosition.X -= speed;
-        }
-
-        if (Core.Input.Keyboard.IsKeyDown(Keys.D) || Core.Input.Keyboard.IsKeyDown(Keys.Right))
-        {
-            _slimePosition.X += speed;
-        }
+        _slimePosition += PlayerControls.GetMovement(MOVEMENT_SPEED);
 
         if (Core.Input.Keyboard.WasKeyJustPressed(Keys.OemPlus))
         {
@@ -269,7 +245,6 @@ public class Scene_recepcao : Scene
 
         GameSession.Inventory.Draw(Core.SpriteBatch, new Vector2(60, 60));
 
-        // Renderiza o prompt de texto de acordo com a posição do jogador
         if (_isAtLeftExit)
         {
             Vector2 textSize = _font.MeasureString(PRESS_E_GAMESCENE);
@@ -277,7 +252,7 @@ public class Scene_recepcao : Scene
                 (Core.GraphicsDevice.PresentationParameters.BackBufferWidth - textSize.X) * 0.5f,
                 Core.GraphicsDevice.PresentationParameters.BackBufferHeight - 100
             );
-            Core.SpriteBatch.DrawString(_font, PRESS_E_GAMESCENE, pos, Color.Yellow);
+            Core.SpriteBatch.DrawString(_font, PRESS_E_GAMESCENE, pos, Color.White);
         }
         else if (_isAtRightExit)
         {
@@ -286,7 +261,7 @@ public class Scene_recepcao : Scene
                 (Core.GraphicsDevice.PresentationParameters.BackBufferWidth - textSize.X) * 0.5f,
                 Core.GraphicsDevice.PresentationParameters.BackBufferHeight - 100
             );
-            Core.SpriteBatch.DrawString(_font, PRESS_E_CALDEIRAO, pos, Color.Yellow);
+            Core.SpriteBatch.DrawString(_font, PRESS_E_CALDEIRAO, pos, Color.White);
         }
 
         Core.SpriteBatch.End();
