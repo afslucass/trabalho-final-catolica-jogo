@@ -23,10 +23,6 @@ public class Scene_recepcao : Scene
     private Vector2 _slimePosition;
     private const float MOVEMENT_SPEED = 5.0f;
 
-    // O VIGIA (NPC que conversa com o jogador), usando o sprite do morcego.
-    private AnimatedSprite _bat;
-    private Vector2 _batPosition;
-
     // Map tiles and collision bounds.
     private Sprite _slimeWall;
     private Circle?[,] _mapSlimesBounds;
@@ -40,11 +36,26 @@ public class Scene_recepcao : Scene
     private bool _isAtLeftExit;
     private bool _isAtRightExit;
 
-    // Diálogo com o VIGIA
-    private DialogCutsceneController dialogCutscene;
-    private bool _canTalk;            // jogador perto o bastante do VIGIA para conversar
-    private bool _isDialogRunning;    // o diálogo está tocando
-    private double _dialogTotalMs;    // duração total do diálogo
+    private class DialogNpc
+    {
+        public AnimatedSprite Sprite;
+        public Vector2 Position;
+        public DialogCutsceneController Dialog;
+        public double TotalMs;
+    }
+    private const int NPC_ROW = 4;
+    private const int VIGIA_COL = 4;
+    private const int SECOND_NPC_COL = 14;
+
+    // Nome da animação do atlas usada por cada NPC (troque se quiser outro sprite).
+    private const string VIGIA_SPRITE = "bat-animation";
+    private const string SECOND_NPC_SPRITE = "bat-animation";
+
+    private DialogNpc _vigia;       // primeiro NPC: sempre disponível
+    private DialogNpc _secondNpc;   // segundo NPC: só depois de falar com o VIGIA
+
+    private DialogNpc _activeNpc;   // NPC cujo diálogo está tocando agora (null = nenhum)
+    private DialogNpc _talkNpc;     // NPC perto o bastante do slime para conversar agora
     private double _dialogRemainingMs;
 
     // Largura máxima de uma linha de diálogo, como fração da largura da tela.
@@ -85,16 +96,12 @@ public class Scene_recepcao : Scene
         _slime = atlas.CreateAnimatedSprite("slime-animation");
         _slime.Scale = new Vector2(4.0f, 4.0f);
 
-        // Cria o VIGIA a partir do atlas e o posiciona no meio da sala (coluna 10, linha 4).
-        _bat = atlas.CreateAnimatedSprite("bat-animation");
-        _bat.Scale = new Vector2(4.0f, 4.0f);
-        _batPosition = new Vector2(_bat.Width * 10, _bat.Height * 4);
-
         _slimeWall = atlas.CreateSprite("slime-2");
         _slimeWall.Scale = new Vector2(4.0f, 4.0f);
 
         _collectSoundEffect = Content.Load<SoundEffect>("audio/collect");
         _font = Content.Load<SpriteFont>("fonts/04B_30");
+
 
         _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
 
@@ -122,44 +129,57 @@ public class Scene_recepcao : Scene
                 }
             }
         }
-        List<DialogCutsceneSteps> steps = new();
 
-        steps.Add(new DialogCutsceneSteps
+        _vigia = new DialogNpc
+        {
+            Sprite = CreateNpcSprite(atlas, VIGIA_SPRITE),
+            Position = TilePosition(VIGIA_COL, NPC_ROW)
+        };
+        _secondNpc = new DialogNpc
+        {
+            Sprite = CreateNpcSprite(atlas, SECOND_NPC_SPRITE),
+            Position = TilePosition(SECOND_NPC_COL, NPC_ROW)
+        };
+
+        // ----- Diálogo do VIGIA (primeiro NPC) -----
+        List<DialogCutsceneSteps> vigiaSteps = new();
+
+        vigiaSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("AUTO LÁ! O que é isso que vejo? Um novo aperitivo? A grande Morte nunca falha... Bem-vindo! Bem-vindo! Bem-vindo ao meio termo! O Limbo abriga aqueles que estão de passagem."),
             hasCaptionFadeIn = true,
-            durationInMillis = 8000,
+            durationInMillis = 12000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
-        steps.Add(new DialogCutsceneSteps
+        vigiaSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Sou o grandioso VIGIA, tudo vejo, tudo sei. Eu te conheço de muito antes Alma, desdo seu nascimento, até o seu último suspiro..."),
             hasCaptionFadeIn = true,
-            durationInMillis = 8000,
+            durationInMillis = 10000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
-        steps.Add(new DialogCutsceneSteps
+        vigiaSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("De certa forma, somos íntimos, mas não se deixe levar, não somos camaradas."),
             hasCaptionFadeIn = true,
             durationInMillis = 6500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
-        steps.Add(new DialogCutsceneSteps
+        vigiaSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Seu corpo fraco te abandonou, você está aqui para seguir para a próxima fase do seu ciclo, assim como todos os outros antes, e como todos os próximos..."),
             hasCaptionFadeIn = true,
-            durationInMillis = 8000,
+            durationInMillis = 11000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
-        steps.Add(new DialogCutsceneSteps
+        vigiaSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Alma, seu destino te aguarda a direita desse vagão, não se surpreenda pelo o que está por vir, não irá durar por muito... Só precisamos ter certeza..."),
             hasCaptionFadeIn = true,
-            durationInMillis = 8000,
+            durationInMillis = 11000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
-        steps.Add(new DialogCutsceneSteps
+        vigiaSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("VÁ CRIATURA, me deixe às minhas novelas, os mortos não me entretém tanto quanto os vivos."),
             hasCaptionFadeIn = true,
@@ -167,13 +187,74 @@ public class Scene_recepcao : Scene
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
 
-        _dialogTotalMs = 0;
+        SetupDialog(_vigia, vigiaSteps);
+
+        // ----- Diálogo do segundo NPC (só aparece depois de falar com o VIGIA) -----
+
+        List<DialogCutsceneSteps> secondSteps = new();
+
+        secondSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Texto do segundo boneco"),
+            hasCaptionFadeIn = true,
+            durationInMillis = 4000,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+        secondSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Texto do segundo boneco 2"),
+            hasCaptionFadeIn = true,
+            durationInMillis = 4000,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+        secondSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Texto do segundo boneco 3"),
+            hasCaptionFadeIn = true,
+            durationInMillis = 4000,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+
+        SetupDialog(_secondNpc, secondSteps);
+    }
+
+    // Cria o sprite de um NPC a partir do atlas.
+    private AnimatedSprite CreateNpcSprite(TextureAtlas atlas, string animationName)
+    {
+        AnimatedSprite sprite = atlas.CreateAnimatedSprite(animationName);
+        sprite.Scale = new Vector2(4.0f, 4.0f);
+        return sprite;
+    }
+
+    // Posição (canto superior esquerdo) de um tile do mapa.
+    private Vector2 TilePosition(int col, int row)
+    {
+        return new Vector2(col * _slimeWall.Width, row * _slimeWall.Height);
+    }
+
+    // Cria o controller do diálogo do NPC e soma a duração dos passos
+    // para saber quando o diálogo termina.
+    private void SetupDialog(DialogNpc npc, List<DialogCutsceneSteps> steps)
+    {
+        npc.TotalMs = 0;
         foreach (var step in steps)
         {
-            _dialogTotalMs += step.durationInMillis;
+            npc.TotalMs += step.durationInMillis;
         }
 
-        dialogCutscene = new DialogCutsceneController(steps, Color.Black, _font, Core.GraphicsDevice);
+        npc.Dialog = new DialogCutsceneController(steps, Color.Black, _font, Core.GraphicsDevice);
+    }
+
+
+    private bool IsNearNpc(Circle slimeBounds, DialogNpc npc)
+    {
+        Circle talkBounds = new Circle(
+            (int)(npc.Position.X + (npc.Sprite.Width * 0.5f)),
+            (int)(npc.Position.Y + (npc.Sprite.Height * 0.5f)),
+            (int)(npc.Sprite.Width * 1.0f)
+        );
+
+        return slimeBounds.Intersects(talkBounds);
     }
 
     private string Wrap(string text)
@@ -224,11 +305,13 @@ public class Scene_recepcao : Scene
 
         // Atualiza animação e câmera
         _slime.Update(gameTime);
-        _bat.Update(gameTime);
+        _vigia.Sprite.Update(gameTime);
+        _secondNpc.Sprite.Update(gameTime);
         _camera.Follow(_slimePosition, Core.GraphicsDevice.Viewport);
 
+        // O áudio sempre funciona, mas o slime não anda enquanto um diálogo toca.
         CheckAudioInput();
-        if (!_isDialogRunning)
+        if (_activeNpc == null)
         {
             CheckKeyboardInput();
         }
@@ -262,33 +345,49 @@ public class Scene_recepcao : Scene
             (int)(tileWidth * 0.5f)
         );
 
+
         _isAtLeftExit = slimeBounds.Intersects(leftExitBounds);
         _isAtRightExit = slimeBounds.Intersects(rightExitBounds);
-        if (_isDialogRunning)
+
+
+        if (_activeNpc != null)
         {
             _dialogRemainingMs -= gameTime.ElapsedGameTime.TotalMilliseconds;
             if (_dialogRemainingMs <= 0)
             {
-                _isDialogRunning = false;
+    
+                if (_activeNpc == _vigia)
+                {
+                    GameSession.TalkedToVigia = true;
+                }
+
+                _activeNpc = null;
             }
         }
 
-    
-        Circle talkBounds = new Circle(
-            (int)(_batPosition.X + (_bat.Width * 0.5f)),
-            (int)(_batPosition.Y + (_bat.Height * 0.5f)),
-            (int)(_bat.Width * 1.0f)
-        );
+        // Descobre com qual NPC o slime pode conversar agora.
+        // O segundo NPC só fica disponível depois de falar com o VIGIA.
+        _talkNpc = null;
+        if (_activeNpc == null)
+        {
+            if (IsNearNpc(slimeBounds, _vigia))
+            {
+                _talkNpc = _vigia;
+            }
+            else if (GameSession.TalkedToVigia && IsNearNpc(slimeBounds, _secondNpc))
+            {
+                _talkNpc = _secondNpc;
+            }
+        }
 
-        _canTalk = !_isDialogRunning && slimeBounds.Intersects(talkBounds);
-
-        if (_canTalk && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
+        // Inicia o diálogo quando a tecla E é pressionada perto de um NPC.
+        if (_talkNpc != null && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
         {
             Core.Audio.PlaySoundEffect(_collectSoundEffect);
 
-            _isDialogRunning = true;
-            _dialogRemainingMs = _dialogTotalMs;
-            dialogCutscene.Start();
+            _activeNpc = _talkNpc;
+            _dialogRemainingMs = _talkNpc.TotalMs;
+            _talkNpc.Dialog.Start();
         }
 
         // Trata a troca de cena
@@ -370,6 +469,7 @@ public class Scene_recepcao : Scene
         }
     }
 
+
     private void CheckAudioInput()
     {
         // Tecla M: liga/desliga o mudo.
@@ -402,7 +502,9 @@ public class Scene_recepcao : Scene
         {
             for (int col = 0; col < map.GetLength(1); col++)
             {
-                if (map[row, col] == 1)
+                bool isNpcTile = row == NPC_ROW && (col == VIGIA_COL || col == SECOND_NPC_COL);
+
+                if (map[row, col] == 1 && !isNpcTile)
                 {
                     Vector2 wallPos = new Vector2(col * _slimeWall.Width, row * _slimeWall.Height);
                     _slimeWall.Draw(Core.SpriteBatch, wallPos);
@@ -410,7 +512,8 @@ public class Scene_recepcao : Scene
             }
         }
 
-        _bat.Draw(Core.SpriteBatch, _batPosition);
+        _vigia.Sprite.Draw(Core.SpriteBatch, _vigia.Position);
+        _secondNpc.Sprite.Draw(Core.SpriteBatch, _secondNpc.Position);
         _slime.Draw(Core.SpriteBatch, _slimePosition);
 
         Core.SpriteBatch.End();
@@ -428,7 +531,7 @@ public class Scene_recepcao : Scene
         GameSession.Inventory.Draw(Core.SpriteBatch, new Vector2(60, 60));
 
         // Renderiza o prompt de texto de acordo com a posição do jogador
-        if (_canTalk)
+        if (_talkNpc != null)
         {
             Vector2 textSize = _font.MeasureString(PRESS_E_TALK);
             Vector2 pos = new Vector2(
@@ -459,7 +562,8 @@ public class Scene_recepcao : Scene
         Core.SpriteBatch.End();
 
         Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
-        dialogCutscene.Draw(Core.SpriteBatch, gameTime);
+        _vigia.Dialog.Draw(Core.SpriteBatch, gameTime);
+        _secondNpc.Dialog.Draw(Core.SpriteBatch, gameTime);
         Core.SpriteBatch.End();
 
         base.Draw(gameTime);

@@ -9,10 +9,12 @@ public static class GameSession
 
     // Armazena o inventário global com os itens coletados
     public static InventoryController Inventory { get; set; } = new InventoryController();
+    public static bool TalkedToVigia { get; set; } = false;
 
     public static void Reset()
     {
         Score = 0;
         Inventory = new InventoryController();
+        TalkedToVigia = false;
     }
 }
