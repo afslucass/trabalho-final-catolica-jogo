@@ -25,6 +25,16 @@ public class Core : Game
     // The next scene to switch to, if there is one.
     private static Scene s_nextScene;
 
+    // Total game time of the most recent Update, used to measure the pause.
+    private static TimeSpan s_lastTotalTime;
+
+    // When the current pause started.
+    private static TimeSpan s_pauseStartedAt;
+
+    private static TimeSpan s_totalPausedTime;
+    public static bool IsPaused { get; private set; }
+    public static PauseMenu Pause { get; private set; }
+
     /// <summary>
     /// Gets the graphics device manager to control the presentation of graphics.
     /// </summary>
@@ -52,6 +62,8 @@ public class Core : Game
 
     /// <summary>
     /// Gets or Sets a value that indicates if the game should exit when the esc key on the keyboard is pressed.
+    /// This only applies to scenes that can't be paused (Scene.CanPause is false),
+    /// because in the other scenes the esc key opens the pause menu.
     /// </summary>
     public static bool ExitOnEscape { get; set; }
 
@@ -122,6 +134,11 @@ public class Core : Game
 
         // Create a new audio controller.
         Audio = new AudioController();
+
+        // Create the pause menu. It uses the same font as the scenes.
+        Pause = new PauseMenu(Content.Load<SpriteFont>("fonts/04B_30"));
+        Pause.OnResume = () => SetPaused(false);
+        Pause.OnQuit = () => Exit();
     }
 
     protected override void UnloadContent()
@@ -131,18 +148,75 @@ public class Core : Game
 
         base.UnloadContent();
     }
+    public static void SetPaused(bool paused)
+    {
+        if (paused == IsPaused)
+        {
+            return;
+        }
+
+        if (paused)
+        {
+            s_pauseStartedAt = s_lastTotalTime;
+            Pause.Open();
+        }
+        else
+        {
+            // Add the time spent paused, so the scenes never see it.
+            s_totalPausedTime += s_lastTotalTime - s_pauseStartedAt;
+        }
+
+        IsPaused = paused;
+    }
+
+    // Builds the GameTime that the scenes receive: it does not include the time
+    // spent paused, and while paused it is frozen (no time elapses).
+    private static GameTime SceneTime(GameTime real)
+    {
+        if (IsPaused)
+        {
+            return new GameTime(s_pauseStartedAt - s_totalPausedTime, TimeSpan.Zero);
+        }
+
+        return new GameTime(
+            real.TotalGameTime - s_totalPausedTime,
+            real.ElapsedGameTime,
+            real.IsRunningSlowly
+        );
+    }
 
     protected override void Update(GameTime gameTime)
     {
-        // Update the input manager.
+        s_lastTotalTime = gameTime.TotalGameTime;
+
+        // Update the input manager. It keeps running while paused,
+        // so the pause menu can read the keyboard.
         Input.Update(gameTime);
 
         // Update the audio controller.
         Audio.Update();
 
-        if (ExitOnEscape && Input.Keyboard.WasKeyJustPressed(Keys.Escape))
+        // Esc or P: pause/resume if the scene allows it. In scenes that can't be
+        // paused (the title screen, for example) Esc keeps exiting the game.
+        bool escPressed = Input.Keyboard.WasKeyJustPressed(Keys.Escape);
+        if (escPressed || Input.Keyboard.WasKeyJustPressed(Keys.P))
         {
-            Exit();
+            if (s_activeScene != null && s_activeScene.CanPause)
+            {
+                SetPaused(!IsPaused);
+            }
+            else if (escPressed && ExitOnEscape)
+            {
+                Exit();
+            }
+        }
+
+        // While paused, only the menu is updated. The scene is frozen.
+        if (IsPaused)
+        {
+            Pause.Update();
+            base.Update(gameTime);
+            return;
         }
 
         // if there is a next scene waiting to be switch to, then transition
@@ -155,7 +229,7 @@ public class Core : Game
         // If there is an active scene, update it.
         if (s_activeScene != null)
         {
-            s_activeScene.Update(gameTime);
+            s_activeScene.Update(SceneTime(gameTime));
         }
 
         base.Update(gameTime);
@@ -163,10 +237,19 @@ public class Core : Game
 
     protected override void Draw(GameTime gameTime)
     {
-        // If there is an active scene, draw it.
+        // If there is an active scene, draw it. While paused it is still drawn
+        // (frozen) behind the pause menu.
         if (s_activeScene != null)
         {
-            s_activeScene.Draw(gameTime);
+            s_activeScene.Draw(SceneTime(gameTime));
+        }
+
+        // Draw the pause menu on top of the frozen scene.
+        if (IsPaused)
+        {
+            SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+            Pause.Draw(SpriteBatch);
+            SpriteBatch.End();
         }
 
         base.Draw(gameTime);

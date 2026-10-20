@@ -103,5 +103,6 @@ public abstract class Scene : IDisposable
         }
         IsDisposed = true; 
     }
+    public virtual bool CanPause => true;
 
 }

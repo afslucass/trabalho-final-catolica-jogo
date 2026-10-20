@@ -36,6 +36,8 @@ public class TitleScene : Scene
     // The origin to set for the press enter text when drawing it.
     private Vector2 _pressEnterOrigin;
 
+    public override bool CanPause => false;
+
     public override void Initialize()
     {
         // LoadContent is called during base.Initialize().
