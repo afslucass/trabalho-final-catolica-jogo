@@ -196,7 +196,7 @@ public class GameScene : Scene
         steps.Add(new Step
         {
            text = "texto 2",
-           image = cutsceneAtlas.CreateSprite("image-2"),
+           image = cutsceneAtlas.CreateSprite("image-1"),
            fadeDuration = 1000,
            hasImageTransition = false,
            hasTextTransition = false,
