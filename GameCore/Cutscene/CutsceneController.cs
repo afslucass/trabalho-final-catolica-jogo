@@ -1,5 +1,6 @@
-
+using System;
 using System.Collections.Generic;
+using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -7,6 +8,9 @@ namespace GameCore.Cutscene;
 
 public class CutsceneController
 {
+    private const float MAX_TEXT_WIDTH_RATIO = 0.8f;
+    private const float TEXT_BOTTOM_MARGIN = 120f;
+
     private List<Step> steps;
     private Color backgroundColor;
     private Color textColor;
@@ -19,6 +23,10 @@ public class CutsceneController
 
     private float imageOpacity = 1f;
     private float textOpacity = 1f;
+    private readonly HashSet<char> supportedChars;
+    private readonly char fallbackChar;
+    private List<string> lines = new();
+    private int linesStepIndex = -1;
 
     public CutsceneController(
         List<Step> steps,
@@ -32,6 +40,10 @@ public class CutsceneController
         this.font = font;
         this.textColor = textColor;
         this.graphicsDevice = graphicsDevice;
+
+        this.supportedChars = new HashSet<char>(font.Characters);
+        this.fallbackChar = font.DefaultCharacter
+            ?? (this.supportedChars.Contains('?') ? '?' : ' ');
 
         this.currentStepIndex = 0;
         this.clockInMillis = 0;
@@ -47,6 +59,7 @@ public class CutsceneController
         this.hasCalledOnStepEnter = false;
         this.imageOpacity = 1f;
         this.textOpacity = 1f;
+        this.linesStepIndex = -1;
     }
 
     private float CalculateOpacity(bool hasTransition, float fadeDuration)
@@ -59,6 +72,47 @@ public class CutsceneController
             0f,
             1f
         );
+    }           
+    private List<string> BuildLines(string text)
+    {
+        List<string> result = new();
+
+        if (string.IsNullOrEmpty(text))
+            return result;
+
+
+        float maxWidth =
+            this.graphicsDevice.PresentationParameters.BackBufferWidth * MAX_TEXT_WIDTH_RATIO;
+        float spaceWidth = this.font.MeasureString(" ").X;
+
+        foreach (string paragraph in text.Split('\n'))
+        {
+            StringBuilder line = new();
+            float lineWidth = 0f;
+
+            foreach (string word in paragraph.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                float wordWidth = this.font.MeasureString(word).X;
+
+                if (lineWidth > 0f && lineWidth + spaceWidth + wordWidth > maxWidth)
+                {
+                    result.Add(line.ToString());
+                    line.Clear();
+                    lineWidth = 0f;
+                }
+                else if (lineWidth > 0f)
+                {
+                    line.Append(' ');
+                    lineWidth += spaceWidth;
+                }
+
+                line.Append(word);
+                lineWidth += wordWidth;
+            }
+            result.Add(line.ToString());
+        }
+
+        return result;
     }
 
     public void Draw(SpriteBatch spriteBatch, GameTime gameTime)
@@ -126,21 +180,40 @@ public class CutsceneController
             position
         );
 
-        Vector2 textSize = this.font.MeasureString(currentStep.text);
-
-        Vector2 textPosition = new Vector2(
-            this.graphicsDevice.PresentationParameters.BackBufferWidth / 2f
-                - textSize.X / 2f,
+        // Quebra o texto do passo em linhas uma única vez, quando o passo muda.
+        if (this.linesStepIndex != this.currentStepIndex)
+        {
+            this.lines = BuildLines(currentStep.text);
+            this.linesStepIndex = this.currentStepIndex;
+        }
+        float lineHeight = this.font.LineSpacing;
+        float blockHeight = this.lines.Count * lineHeight;
+        float top =
             this.graphicsDevice.PresentationParameters.BackBufferHeight
-                - 120f
-                - textSize.Y / 2f
-        );
+                - TEXT_BOTTOM_MARGIN
+                + lineHeight / 2f
+                - blockHeight;
 
-        spriteBatch.DrawString(
-            this.font,
-            currentStep.text,
-            textPosition,
-            this.textColor * this.textOpacity
-        );
+        for (int i = 0; i < this.lines.Count; i++)
+        {
+            string line = this.lines[i];
+            if (line.Length == 0)
+                continue;
+
+            Vector2 lineSize = this.font.MeasureString(line);
+
+            Vector2 linePosition = new Vector2(
+                this.graphicsDevice.PresentationParameters.BackBufferWidth / 2f
+                    - lineSize.X / 2f,
+                top + i * lineHeight
+            );
+
+            spriteBatch.DrawString(
+                this.font,
+                line,
+                linePosition,
+                this.textColor * this.textOpacity
+            );
+        }
     }
 }

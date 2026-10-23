@@ -182,11 +182,11 @@ public class GameScene : Scene
 
         // Load the font
         _font = Content.Load<SpriteFont>("fonts/04B_30");
-
+        _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
         List<Step> steps = new List<Step>();
         steps.Add(new Step
         {
-           text = "Texto de texte",
+           text = "Você nem repara o quão precioso o levantar do peito, a leve indicação de respiração de algo ainda vivo, na maioria dos casos pelo menos.",
            image = cutsceneAtlas.CreateSprite("image-1"),
            fadeDuration = 1000,
            hasImageTransition = true,
@@ -195,13 +195,86 @@ public class GameScene : Scene
         });
         steps.Add(new Step
         {
-           text = "texto 2",
+           text = "Enquanto deitado na maca de um hospital, você consegue sentir cada parte do seu corpo parar, a dor só dura um momento.",
            image = cutsceneAtlas.CreateSprite("image-1"),
            fadeDuration = 1000,
            hasImageTransition = false,
            hasTextTransition = false,
            durationInMillis = 3000,
         });
+        steps.Add(new Step
+        {
+           text = "Você fecha os olhos, com medo, seus lábios já incapazes de expressar suas últimas preces.",
+           image = cutsceneAtlas.CreateSprite("image-1"),
+           fadeDuration = 1000,
+           hasImageTransition = false,
+           hasTextTransition = false,
+           durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+           text = "No painel, apenas uma parada, Limbo. Ao longe, luzes fortes, mas não é nenhum tipo de maquinário. ",
+           image = cutsceneAtlas.CreateSprite("image-1"),
+           fadeDuration = 1000,
+           hasImageTransition = false,
+           hasTextTransition = false,
+           durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+           text = "A visão do que se parece um inseto gigante, com seu corpo formado por vagões, não te assusta, na realidade, você não parece sentir absolutamente nada. ",
+           image = cutsceneAtlas.CreateSprite("image-1"),
+           fadeDuration = 1000,
+           hasImageTransition = false,
+           hasTextTransition = false,
+           durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+           text = "A criatura olha em sua direção, e apesar de nenhuma palavra ser dita, você entende o seu chamado.",
+           image = cutsceneAtlas.CreateSprite("image-1"),
+           fadeDuration = 1000,
+           hasImageTransition = false,
+           hasTextTransition = false,
+           durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+           text = "Por meio de forças maiores, você sente seu corpo deslizar pelo ar. Uma atitude inconsciente, o anseio por uma curiosidade que não parece existir, sentimentos complicados de se descrever.",
+           image = cutsceneAtlas.CreateSprite("image-1"),
+           fadeDuration = 1000,
+           hasImageTransition = false,
+           hasTextTransition = false,
+           durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+           text = "O que há dentro deste trem? Você deve se perguntar.",
+           image = cutsceneAtlas.CreateSprite("image-1"),
+           fadeDuration = 1000,
+           hasImageTransition = false,
+           hasTextTransition = false,
+           durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+           text = "Uma única porta se abre para recebê-lo.",
+           image = cutsceneAtlas.CreateSprite("image-1"),
+           fadeDuration = 1000,
+           hasImageTransition = false,
+           hasTextTransition = false,
+           durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+           text = "Você embarca no Limbo.",
+           image = cutsceneAtlas.CreateSprite("image-1"),
+           fadeDuration = 1000,
+           hasImageTransition = false,
+           hasTextTransition = false,
+           durationInMillis = 3000,
+        });
+                
         cutscene = new CutsceneController(steps, Color.Black, Color.White, _font, Core.GraphicsDevice);
         cutscene.Start();
         
