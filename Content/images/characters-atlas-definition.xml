@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas>
+    <Texture>images/spritesheet_final</Texture>
+    <Regions>
+        <Region name="player-1" x="143" y="107" width="135" height="242" />
+        <Region name="player-2" x="287" y="107" width="135" height="242" />
+        <Region name="hooded"   x="69"  y="371" width="304" height="444" />
+        <Region name="owl-1"    x="92"  y="843" width="359" height="532" />
+        <Region name="owl-2"    x="462" y="843" width="359" height="532" />
+        <Region name="doctor"   x="77"  y="1436" width="324" height="649" />
+    </Regions>
+    <Animations>
+        <Animation name="player-1-animation" delay="200">
+            <Frame region="player-1" />
+        </Animation>
+        <Animation name="player-2-animation" delay="200">
+            <Frame region="player-2" />
+        </Animation>
+        <Animation name="hooded-animation" delay="200">
+            <Frame region="hooded" />
+        </Animation>
+        <Animation name="owl-1-animation" delay="200">
+            <Frame region="owl-1" />
+        </Animation>
+        <Animation name="owl-2-animation" delay="200">
+            <Frame region="owl-2" />
+        </Animation>
+        <Animation name="doctor-animation" delay="200">
+            <Frame region="doctor" />
+        </Animation>
+    </Animations>
+</TextureAtlas>

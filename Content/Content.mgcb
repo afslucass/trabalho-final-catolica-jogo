@@ -95,6 +95,9 @@
 /processorParam:Version=3.8.5.1
 /build:images/atlas.png
 
+#begin images/characters-atlas-definition.xml
+/copy:images/characters-atlas-definition.xml
+
 #begin images/cutscene-atlas-definition.xml
 /copy:images/cutscene-atlas-definition.xml
 
