@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <TextureAtlas>
-    <Texture>images/spritesheet_final</Texture>
+    <Texture>images/spritesheet-final</Texture>
     <Regions>
         <Region name="player-1" x="143" y="107" width="135" height="242" />
         <Region name="player-2" x="287" y="107" width="135" height="242" />

@@ -114,6 +114,19 @@
 /processorParam:Version=3.8.5.1
 /build:images/cutscene-atlas.jpg
 
+#begin images/final.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/processorParam:Version=3.8.5.1
+/build:images/final.png
+
 #begin images/Intro.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -127,7 +140,7 @@
 /processorParam:Version=3.8.5.1
 /build:images/Intro.png
 
-#begin images/spritesheet_final.png
+#begin images/spritesheet-final.png
 /importer:TextureImporter
 /processor:TextureProcessor
 /processorParam:ColorKeyColor=255,0,255,255
@@ -138,7 +151,7 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /processorParam:Version=3.8.5.1
-/build:images/spritesheet_final.png
+/build:images/spritesheet-final.png
 
 #begin images/text_box.png
 /importer:TextureImporter
