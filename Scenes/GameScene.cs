@@ -19,7 +19,7 @@ public class GameScene : Scene
 {
     private Camera2D _camera;
 
- // Defines the slime animated sprite.
+    // Defines the slime animated sprite.
     private AnimatedSprite _slime;
 
     private Sprite _slimeWall;
@@ -53,6 +53,9 @@ public class GameScene : Scene
     private Vector2 _batItemPedroPosition;
     private Vector2 _batItemArthurPosition;
 
+    private bool _isArthurBatCollected;
+    private bool _isPedroBatCollected;
+
     // Tracks the position of the slime.
     private Vector2 _slimePosition;
 
@@ -65,7 +68,7 @@ public class GameScene : Scene
     // Tracks the velocity of the bat.
     private Vector2 _batVelocity;
 
-        // The sound effect to play when the bat bounces off the edge of the screen.
+    // The sound effect to play when the bat bounces off the edge of the screen.
     private SoundEffect _bounceSoundEffect;
 
     // The sound effect to play when the slime eats a bat.
@@ -116,7 +119,7 @@ public class GameScene : Scene
         // Set the position of the score text to align to the left edge of the
         // room bounds, and to vertically be at the center of the first tile.
         _scoreTextPosition = new Vector2(60, 60);
-    
+
         // Set the position of the press E text.
         Vector2 size = _font.MeasureString(PRESS_E_INTERECT);
         _pressEInterectPos = new Vector2(Core.GraphicsDevice.PresentationParameters.BackBufferWidth / 2, 800);
@@ -147,9 +150,9 @@ public class GameScene : Scene
             }
         }
     }
-    
+
     public override void LoadContent()
-    {   
+    {
         // Create the texture atlas from the XML configuration file
         TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
         TextureAtlas cutsceneAtlas = TextureAtlas.FromFile(Content, "images/cutscene-atlas-definition.xml");
@@ -158,7 +161,7 @@ public class GameScene : Scene
         // Create the slime animated sprite from the atlas.
         _slime = atlas.CreateAnimatedSprite("slime-animation");
         _slime.Scale = new Vector2(4.0f, 4.0f);
-        _slimePosition = new Vector2(_slime.Width*2, _slime.Height*14);
+        _slimePosition = new Vector2(_slime.Width * 2, _slime.Height * 14);
 
         // Create the bat animated sprite from the atlas.
         _bat = atlas.CreateAnimatedSprite("bat-animation");
@@ -171,8 +174,8 @@ public class GameScene : Scene
         _batItemArthur.Scale = new Vector2(4.0f, 4.0f);
         _batItemPedro = atlas.CreateSprite("bat-2");
         _batItemPedro.Scale = new Vector2(4.0f, 4.0f);
-        _batItemArthurPosition = new Vector2(_batItemArthur.Width*10, _batItemArthur.Height*14);
-        _batItemPedroPosition = new Vector2(_batItemPedro.Width*4, _batItemPedro.Height*7);
+        _batItemArthurPosition = new Vector2(_batItemArthur.Width * 10, _batItemArthur.Height * 14);
+        _batItemPedroPosition = new Vector2(_batItemPedro.Width * 4, _batItemPedro.Height * 7);
 
         // Load the bounce sound effect
         _bounceSoundEffect = Content.Load<SoundEffect>("audio/bounce");
@@ -186,98 +189,101 @@ public class GameScene : Scene
         List<Step> steps = new List<Step>();
         steps.Add(new Step
         {
-           text = "Você nem repara o quão precioso o levantar do peito, a leve indicação de respiração de algo ainda vivo, na maioria dos casos pelo menos.",
-           image = cutsceneAtlas.CreateSprite("image-1"),
-           fadeDuration = 1000,
-           hasImageTransition = true,
-           hasTextTransition = true,
-           durationInMillis = 2000,
+            text = "Você nem repara o quão precioso o levantar do peito, a leve indicação de respiração de algo ainda vivo, na maioria dos casos pelo menos.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = true,
+            hasTextTransition = true,
+            durationInMillis = 2000,
         });
         steps.Add(new Step
         {
-           text = "Enquanto deitado na maca de um hospital, você consegue sentir cada parte do seu corpo parar, a dor só dura um momento.",
-           image = cutsceneAtlas.CreateSprite("image-1"),
-           fadeDuration = 1000,
-           hasImageTransition = false,
-           hasTextTransition = false,
-           durationInMillis = 3000,
+            text = "Enquanto deitado na maca de um hospital, você consegue sentir cada parte do seu corpo parar, a dor só dura um momento.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
         });
         steps.Add(new Step
         {
-           text = "Você fecha os olhos, com medo, seus lábios já incapazes de expressar suas últimas preces.",
-           image = cutsceneAtlas.CreateSprite("image-1"),
-           fadeDuration = 1000,
-           hasImageTransition = false,
-           hasTextTransition = false,
-           durationInMillis = 3000,
+            text = "Você fecha os olhos, com medo, seus lábios já incapazes de expressar suas últimas preces.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
         });
         steps.Add(new Step
         {
-           text = "No painel, apenas uma parada, Limbo. Ao longe, luzes fortes, mas não é nenhum tipo de maquinário. ",
-           image = cutsceneAtlas.CreateSprite("image-1"),
-           fadeDuration = 1000,
-           hasImageTransition = false,
-           hasTextTransition = false,
-           durationInMillis = 3000,
+            text = "No painel, apenas uma parada, Limbo. Ao longe, luzes fortes, mas não é nenhum tipo de maquinário. ",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
         });
         steps.Add(new Step
         {
-           text = "A visão do que se parece um inseto gigante, com seu corpo formado por vagões, não te assusta, na realidade, você não parece sentir absolutamente nada. ",
-           image = cutsceneAtlas.CreateSprite("image-1"),
-           fadeDuration = 1000,
-           hasImageTransition = false,
-           hasTextTransition = false,
-           durationInMillis = 3000,
+            text = "A visão do que se parece um inseto gigante, com seu corpo formado por vagões, não te assusta, na realidade, você não parece sentir absolutamente nada. ",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
         });
         steps.Add(new Step
         {
-           text = "A criatura olha em sua direção, e apesar de nenhuma palavra ser dita, você entende o seu chamado.",
-           image = cutsceneAtlas.CreateSprite("image-1"),
-           fadeDuration = 1000,
-           hasImageTransition = false,
-           hasTextTransition = false,
-           durationInMillis = 3000,
+            text = "A criatura olha em sua direção, e apesar de nenhuma palavra ser dita, você entende o seu chamado.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
         });
         steps.Add(new Step
         {
-           text = "Por meio de forças maiores, você sente seu corpo deslizar pelo ar. Uma atitude inconsciente, o anseio por uma curiosidade que não parece existir, sentimentos complicados de se descrever.",
-           image = cutsceneAtlas.CreateSprite("image-1"),
-           fadeDuration = 1000,
-           hasImageTransition = false,
-           hasTextTransition = false,
-           durationInMillis = 3000,
+            text = "Por meio de forças maiores, você sente seu corpo deslizar pelo ar. Uma atitude inconsciente, o anseio por uma curiosidade que não parece existir, sentimentos complicados de se descrever.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
         });
         steps.Add(new Step
         {
-           text = "O que há dentro deste trem? Você deve se perguntar.",
-           image = cutsceneAtlas.CreateSprite("image-1"),
-           fadeDuration = 1000,
-           hasImageTransition = false,
-           hasTextTransition = false,
-           durationInMillis = 3000,
+            text = "O que há dentro deste trem? Você deve se perguntar.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
         });
         steps.Add(new Step
         {
-           text = "Uma única porta se abre para recebê-lo.",
-           image = cutsceneAtlas.CreateSprite("image-1"),
-           fadeDuration = 1000,
-           hasImageTransition = false,
-           hasTextTransition = false,
-           durationInMillis = 3000,
+            text = "Uma única porta se abre para recebê-lo.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
         });
         steps.Add(new Step
         {
-           text = "Você embarca no Limbo.",
-           image = cutsceneAtlas.CreateSprite("image-1"),
-           fadeDuration = 1000,
-           hasImageTransition = false,
-           hasTextTransition = false,
-           durationInMillis = 3000,
+            text = "Você embarca no Limbo.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
         });
-                
+
         cutscene = new CutsceneController(steps, Color.Black, Color.White, _font, Core.GraphicsDevice);
         cutscene.Start();
-        
+
+        // Itens já coletados antes não voltam para o chão ao reentrar na cena.
+        _isArthurBatCollected = GameSession.Inventory.Has("arthur-bat");
+        _isPedroBatCollected = GameSession.Inventory.Has("pedro-bat");
         cursorAtlas.SetCursor("cheese");
     }
 
@@ -421,12 +427,12 @@ public class GameScene : Scene
             _score += 100;
             GameSession.Score += 100;
             _score = GameSession.Score;
-            
+
         }
         // Define the column and row indices for the map exit tile.
-        int exitCol = 15; 
+        int exitCol = 15;
         int exitCol_1 = 1;
-        int exitRow = 14; 
+        int exitRow = 14;
         // Get the tile dimensions based on the wall sprite size.
         int tileWidth = (int)_slimeWall.Width;
         int tileHeight = (int)_slimeWall.Height;
@@ -454,11 +460,11 @@ public class GameScene : Scene
             Core.ChangeScene(new Scene_caldeirao());
             return;
         }
-        if(Core.Input.Mouse.WasButtonJustPressed(MouseButton.Left))
+        if (Core.Input.Mouse.WasButtonJustPressed(MouseButton.Left))
         {
             Circle _mouseBounds = new Circle(
-                (int)Core.Input.Mouse.GetWorldPosition(_camera).X, 
-                (int)Core.Input.Mouse.GetWorldPosition(_camera).Y, 
+                (int)Core.Input.Mouse.GetWorldPosition(_camera).X,
+                (int)Core.Input.Mouse.GetWorldPosition(_camera).Y,
                 1
             );
             Circle _arthurBatBounds = new Circle(
@@ -471,16 +477,16 @@ public class GameScene : Scene
                 (int)(_batItemPedroPosition.Y + (_batItemPedro.Height * 0.5f)),
                 (int)(_batItemPedro.Width * 0.5f)
             );
-            if (_mouseBounds.Intersects(_arthurBatBounds))
+            if (!_isArthurBatCollected && _mouseBounds.Intersects(_arthurBatBounds))
             {
-                _inventory.CollectItem("arthur-bat", _batItemArthur);
+                _isArthurBatCollected = true;
+                _inventory.CollectItem("arthur-bat", "bat-1");
                 Core.Audio.PlaySoundEffect(_collectSoundEffect);
-                _batItemArthur.Scale = new Vector2(0f, 0f);
             }
-            if (_mouseBounds.Intersects(_pedroBatBounds))
+            if (!_isPedroBatCollected && _mouseBounds.Intersects(_pedroBatBounds))
             {
-                _inventory.CollectItem("pedro-bat", _batItemPedro);
-                _batItemPedro.Scale = new Vector2(0f, 0f);
+                _isPedroBatCollected = true;
+                _inventory.CollectItem("pedro-bat", "bat-2");
                 Core.Audio.PlaySoundEffect(_collectSoundEffect);
             }
         }
@@ -568,11 +574,14 @@ public class GameScene : Scene
         // Draw the bat sprite.
         _bat.Draw(Core.SpriteBatch, _batPosition);
 
+        if (!_isArthurBatCollected) _batItemArthur.Draw(Core.SpriteBatch, _batItemArthurPosition);
+        if (!_isPedroBatCollected)  _batItemPedro.Draw(Core.SpriteBatch, _batItemPedroPosition);
+
         for (int row = 0; row < map.GetLength(0); row++)
         {
             for (int col = 0; col < map.GetLength(1); col++)
             {
-                if(map[row, col] == 1)
+                if (map[row, col] == 1)
                 {
                     Vector2 _slimeWallPosition = new(col * _slimeWall.Height, row * _slimeWall.Width);
                     _slimeWall.Draw(Core.SpriteBatch, _slimeWallPosition);

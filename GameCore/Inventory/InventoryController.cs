@@ -1,41 +1,52 @@
-
 using System.Collections.Generic;
 using GameCore.Graphics;
-using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace GameCore.Inventory;
 
 public class InventoryController
 {
-    private Dictionary<string, Sprite> _sprites;
+    private const string ITEMS_ATLAS_FILE = "images/atlas-definition.xml";
+    private static readonly Vector2 ICON_SCALE = new(4.0f, 4.0f);
     private const int RENDER_GAP = 12;
+    private static TextureAtlas s_itemsAtlas;
+    private readonly Dictionary<string, string> _items = new();
+    private readonly Dictionary<string, Sprite> _icons = new();
+    public int Count => _items.Count;
 
-    public InventoryController()
+    /// <summary>Ids de todos os itens coletados, na ordem em que foram coletados.</summary>
+    public IReadOnlyCollection<string> ItemIds => _items.Keys;
+    /// <summary>Indica se o item já foi coletado.</summary>
+    public bool Has(string id) => _items.ContainsKey(id);
+    public bool CollectItem(string id, string iconRegionName)
     {
-        _sprites = new Dictionary<string, Sprite>();
-    }
+        if (_items.ContainsKey(id))
+        {
+            return false;
+        }
 
-    public void CollectItem(string name, Sprite sprite)
-    {
-        Sprite copy = new Sprite(sprite.Region);
-        copy.Scale = sprite.Scale;
-        _sprites.Add(name, copy);
+        _items.Add(id, iconRegionName);
+        return true;
     }
-
-    public Dictionary<string, Sprite> GetItems()
-    {
-        return _sprites;
-    }
-
 
     public void Draw(SpriteBatch spriteBatch, Vector2 position)
     {
-        Vector2 _spritePosition = position;
-        foreach(var _sprite in _sprites)
+        s_itemsAtlas ??= TextureAtlas.FromFile(Core.Content, ITEMS_ATLAS_FILE);
+
+        Vector2 iconPosition = position;
+
+        foreach (var item in _items)
         {
-            _sprite.Value.Draw(spriteBatch, _spritePosition);
-            _spritePosition.X += RENDER_GAP + _sprite.Value.Width;
+            if (!_icons.TryGetValue(item.Key, out Sprite icon))
+            {
+                icon = s_itemsAtlas.CreateSprite(item.Value);
+                icon.Scale = ICON_SCALE;
+                _icons[item.Key] = icon;
+            }
+
+            icon.Draw(spriteBatch, iconPosition);
+            iconPosition.X += RENDER_GAP + icon.Width;
         }
     }
 }
