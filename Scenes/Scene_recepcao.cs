@@ -5,199 +5,241 @@ using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using GameCore;
-using GameCore.Camera;
 using GameCore.CustomMouseCursor;
 using GameCore.DialogCutscene;
 using GameCore.Graphics;
-using GameCore.Input;
 using GameCore.Scenes;
 
 namespace TestGame.Scenes;
 
+/// <summary>
+/// Defines the player's spawn point based on the previous scene.
+/// </summary>
+public enum RecepcaoSpawn
+{
+    Start,           // First visit, coming from the introduction
+    FromCaldeira,    // Returning from the Boiler (spawns near the right arch)
+    FromAssombrado   // Returning from the Haunted Train (spawns near the left arch)
+}
+
 public class Scene_recepcao : Scene
 {
-    private Camera2D _camera;
+    // ---------- World ----------
+    // Uses the background's native resolution (3840 x 1080). The camera applies a
+    // scale so the background height matches the window height, allowing the game
+    // to support any resolution. Background areas outside the window width
+    // remain off-screen and are revealed as the camera scrolls.
+    private Sprite _background;
+    private float _cameraX;
 
-    // ---------- Jogador ----------
-    // O jogador usa duas sprites espelhadas: uma olhando para cada lado.
-    // _slime aponta sempre para a que está ativa (a do lado para onde ele anda).
-    private AnimatedSprite _slime;
-    private AnimatedSprite _slimeLeft;
-    private AnimatedSprite _slimeRight;
-    private Vector2 _slimePosition;
-    private const float MOVEMENT_SPEED = 5.0f;
+    // Character foot position, measured in background pixels.
+    // The floor (bottom black strip) spans y=955 to y=1080.
+    private const float GROUND_Y = 1010f;
 
+    // ---------- Player ----------
+    // Two mirrored sprites, one facing each direction.
+    // _player always references the active sprite.
+    private AnimatedSprite _player;
+    private AnimatedSprite _playerLeft;
+    private AnimatedSprite _playerRight;
+
+    // Horizontal position of the player's foot center, in background pixels.
+    private float _playerX;
+
+    // Movement speed in background pixels per second (Space applies the sprint multiplier).
+    private const float PLAYER_SPEED = 450f;
+    private const float SPRINT_MULTIPLIER = 1.6f;
+
+    // Minimum distance from the world boundaries.
+    private const float WORLD_MARGIN = 150f;
+
+    // In this game, player-2 faces left and player-1 faces
+    // right (verified). Update these names if the sprite sheet changes.
     private const string PLAYER_LEFT_ANIMATION = "player-2-animation";
     private const string PLAYER_RIGHT_ANIMATION = "player-1-animation";
 
-    private const float PLAYER_SCALE = 0.33f;
-    private const float VIGIA_SCALE = 0.18f;
-    private const float SECOND_NPC_SCALE = 0.15f;
+    // ---------- Watcher ----------
+    // owl-1 faces left and owl-2 faces right.
+    // The Watcher always faces the player.
+    private AnimatedSprite _vigia;
+    private AnimatedSprite _vigiaLeft;
+    private AnimatedSprite _vigiaRight;
+    private float _vigiaX;
 
-    // Map tiles and collision bounds.
-    private Sprite _slimeWall;
-    private Circle?[,] _mapSlimesBounds;
+    private const string VIGIA_LEFT_ANIMATION = "owl-1-animation";
+    private const string VIGIA_RIGHT_ANIMATION = "owl-2-animation";
 
-    // Mensagens de interação e posições da interface
-    private const string PRESS_E_GAMESCENE = "Press E para entrar na GameScene";
-    private const string PRESS_E_CALDEIRAO = "Press E para entrar na sala do Caldeirao";
-    private const string PRESS_E_TALK = "Press E para conversar";
+    // Maximum distance (in background pixels) for interacting with the Watcher.
+    private const float TALK_RANGE = 330f;
 
-    private Vector2 _pressEInteractPos;
+    // ---------- Exits ----------
+    // The two background arches: the left one leads to the Haunted Train,
+    // and the right one leads to the Boiler. Positions are ratios of background width.
+    private const float LEFT_EXIT_RATIO = 0.215f;
+    private const float RIGHT_EXIT_RATIO = 0.785f;
+    private const float EXIT_RANGE = 220f;
+
+    private float _leftExitX;
+    private float _rightExitX;
     private bool _isAtLeftExit;
     private bool _isAtRightExit;
+    private bool _leftExitOpen;
+    private bool _rightExitOpen;
 
-    // ---------- NPCs de conversa ----------
-    // Um NPC guarda o sprite, a posição, o diálogo dele e a duração total desse diálogo.
-    private class DialogNpc
+    // ---------- UI Text ----------
+    private const string PRESS_E_TALK = "Press E para conversar";
+    private const string PRESS_E_LEFT = "Press E para ir ao vagao assombrado";
+    private const string PRESS_E_RIGHT = "Press E para entrar na Caldeira";
+    private const string LOCKED_LEFT = "A porta esta trancada";
+    private const string LOCKED_RIGHT = "Converse com o Vigia antes de seguir";
+
+    // ---------- Dialogs ----------
+    // Stores the dialog controller, total duration, and completion callback.
+    private class Talk
     {
-        public AnimatedSprite Sprite;
-        public Vector2 Position;
         public DialogCutsceneController Dialog;
         public double TotalMs;
+        public Action OnFinished;
     }
-    private const int NPC_ROW = 4;
-    private const int VIGIA_COL = 4;
-    private const int SECOND_NPC_COL = 14;
 
-    // Animação do atlas de personagens usada por cada NPC.
-    private const string VIGIA_ANIMATION = "hooded-animation";
-    private const string SECOND_NPC_ANIMATION = "owl-1-animation";
+    private Talk _firstTalk;      // Intro stage: Watcher's welcome
+    private Talk _reminderTalk;   // TalkedToWatcher stage: reminder to go right
+    private Talk _secondTalk;     // Judged stage: agitated Watcher guides Alma to the Haunted Train
+    private Talk _idleTalk;       // Other stages
 
-    private DialogNpc _vigia;       
-    private DialogNpc _secondNpc;   
+    private Talk _activeTalk;     // Currently playing dialog (null = none)
+    private double _talkRemainingMs;
+    private bool _canTalk;
 
-    private DialogNpc _activeNpc;   
-    private DialogNpc _talkNpc;     
-    private double _dialogRemainingMs;
-
-    // Largura máxima de uma linha de diálogo, como fração da largura da tela.
+    // Maximum dialog line width, as a fraction of screen width.
     private const float DIALOG_MAX_WIDTH_RATIO = 0.8f;
 
-    readonly private int[,] map = {
-        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
-        { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-        { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-        { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-        { 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 },
-        { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-        { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-        { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-        { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
-    };
-
-    // UI and Sound.
+    // UI and audio resources.
     private SpriteFont _font;
     private SoundEffect _collectSoundEffect;
 
+    private readonly RecepcaoSpawn _spawn;
+
+    public Scene_recepcao(RecepcaoSpawn spawn = RecepcaoSpawn.Start)
+    {
+        _spawn = spawn;
+    }
+
     public override void Initialize()
     {
+        // The base Initialize method also calls LoadContent.
         base.Initialize();
 
-        _camera = new Camera2D();
-        _slimePosition = new Vector2(120, 120);
+        // Sets the player's spawn position based on the previous scene.
+        float worldWidth = _background.Width;
+        switch (_spawn)
+        {
+            case RecepcaoSpawn.FromCaldeira:
+                _playerX = _rightExitX - 300f;
+                _player = _playerLeft;
+                break;
+
+            case RecepcaoSpawn.FromAssombrado:
+                _playerX = _leftExitX + 300f;
+                _player = _playerRight;
+                break;
+
+            default:
+                _playerX = worldWidth * 0.30f;
+                _player = _playerRight;
+                break;
+        }
+
+        // Places the camera immediately, without an initial slide.
+        UpdateCamera(0f, snap: true);
     }
 
     public override void LoadContent()
     {
         base.LoadContent();
 
-        // Atlas antigo: continua fornecendo a parede ("slime-2") e os itens.
-        TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
-
-        // Atlas novo (spritesheet_final): jogador e NPCs.
+        // Atlas containing characters, items, and backgrounds from spritesheet_final.
         TextureAtlas charactersAtlas = TextureAtlas.FromFile(Content, "images/characters-atlas-definition.xml");
-
         MouseCursorAtlas cursorAtlas = MouseCursorAtlas.FromFile(Content, "cursor/cursor-atlas-definition.xml");
 
-        _slimeWall = atlas.CreateSprite("slime-2");
-        _slimeWall.Scale = new Vector2(4.0f, 4.0f);
-        _slimeLeft = charactersAtlas.CreateAnimatedSprite(PLAYER_LEFT_ANIMATION);
-        _slimeLeft.Scale = new Vector2(PLAYER_SCALE, PLAYER_SCALE);
-        _slimeRight = charactersAtlas.CreateAnimatedSprite(PLAYER_RIGHT_ANIMATION);
-        _slimeRight.Scale = new Vector2(PLAYER_SCALE, PLAYER_SCALE);
-        _slime = _slimeRight;
+        // Reception background (3840 x 1080), drawn at its native size.
+        _background = charactersAtlas.CreateSprite("bg-recepcao");
+        _background.Scale = Vector2.One;
+
+        // Player sprites: one for each direction (matching sizes prevent position jumps).
+        _playerLeft = charactersAtlas.CreateAnimatedSprite(PLAYER_LEFT_ANIMATION);
+        _playerLeft.Scale = Vector2.One;
+        _playerRight = charactersAtlas.CreateAnimatedSprite(PLAYER_RIGHT_ANIMATION);
+        _playerRight.Scale = Vector2.One;
+        _player = _playerRight;
+
+        // Watcher: positioned at the center of the train, in front of the tree corridor.
+        _vigiaLeft = charactersAtlas.CreateAnimatedSprite(VIGIA_LEFT_ANIMATION);
+        _vigiaLeft.Scale = Vector2.One;
+        _vigiaRight = charactersAtlas.CreateAnimatedSprite(VIGIA_RIGHT_ANIMATION);
+        _vigiaRight.Scale = Vector2.One;
+        _vigia = _vigiaLeft;
+
+        _vigiaX = _background.Width * 0.5f;
+        _leftExitX = _background.Width * LEFT_EXIT_RATIO;
+        _rightExitX = _background.Width * RIGHT_EXIT_RATIO;
 
         _collectSoundEffect = Content.Load<SoundEffect>("audio/collect");
         _font = Content.Load<SpriteFont>("fonts/04B_30");
 
-        // Rede de segurança: um caractere que a fonte não desenha é trocado por '?'
-         _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
+        // Fallback: unsupported font characters are replaced with '?'
+        // (or a space) to prevent ArgumentException in MeasureString/DrawString.
+        // Add accented characters to the .spritefont CharacterRegion to render them correctly.
+        _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
 
         cursorAtlas.SetCursor("cheese");
 
-        //matriz de colisão das paredes
-        _mapSlimesBounds = new Circle?[map.GetLength(0), map.GetLength(1)];
-        for (int row = 0; row < map.GetLength(0); row++)
-        {
-            for (int col = 0; col < map.GetLength(1); col++)
-            {
-                if (map[row, col] == 1)
-                {
-                    float x = col * _slimeWall.Width;
-                    float y = row * _slimeWall.Height;
-                    _mapSlimesBounds[row, col] = new Circle(
-                        (int)(x + _slimeWall.Width * 0.5f),
-                        (int)(y + _slimeWall.Height * 0.5f),
-                        (int)(_slimeWall.Width * 0.5f)
-                    );
-                }
-                else
-                {
-                    _mapSlimesBounds[row, col] = null;
-                }
-            }
-        }
-        _vigia = new DialogNpc
-        {
-            Sprite = CreateNpcSprite(charactersAtlas, VIGIA_ANIMATION, VIGIA_SCALE)
-        };
-        _vigia.Position = NpcPosition(VIGIA_COL, NPC_ROW, _vigia.Sprite);
-        _secondNpc = new DialogNpc
-        {
-            Sprite = CreateNpcSprite(charactersAtlas, SECOND_NPC_ANIMATION, SECOND_NPC_SCALE)
-        };
-        _secondNpc.Position = NpcPosition(SECOND_NPC_COL, NPC_ROW, _secondNpc.Sprite);
+        BuildDialogs();
+    }
 
-        List<DialogCutsceneSteps> vigiaSteps = new();
+    // Builds the Watcher's dialogs. Characters remain still during conversations,
+    // so each step contains only text and duration, with no sprite animations.
+    private void BuildDialogs()
+    {
+        // ----- Intro stage: welcome -----
+        List<DialogCutsceneSteps> firstSteps = new();
 
-        vigiaSteps.Add(new DialogCutsceneSteps
+        firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("AUTO LÁ! O que é isso que vejo? Um novo aperitivo? A grande Morte nunca falha... Bem-vindo! Bem-vindo! Bem-vindo ao meio termo! O Limbo abriga aqueles que estão de passagem."),
             hasCaptionFadeIn = true,
             durationInMillis = 12000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
-        vigiaSteps.Add(new DialogCutsceneSteps
+        firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Sou o grandioso VIGIA, tudo vejo, tudo sei. Eu te conheço de muito antes Alma, desdo seu nascimento, até o seu último suspiro..."),
             hasCaptionFadeIn = true,
             durationInMillis = 10000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
-        vigiaSteps.Add(new DialogCutsceneSteps
+        firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("De certa forma, somos íntimos, mas não se deixe levar, não somos camaradas."),
             hasCaptionFadeIn = true,
             durationInMillis = 6500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
-        vigiaSteps.Add(new DialogCutsceneSteps
+        firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Seu corpo fraco te abandonou, você está aqui para seguir para a próxima fase do seu ciclo, assim como todos os outros antes, e como todos os próximos..."),
             hasCaptionFadeIn = true,
             durationInMillis = 11000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
-        vigiaSteps.Add(new DialogCutsceneSteps
+        firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Alma, seu destino te aguarda a direita desse vagão, não se surpreenda pelo o que está por vir, não irá durar por muito... Só precisamos ter certeza..."),
             hasCaptionFadeIn = true,
             durationInMillis = 11000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
-        vigiaSteps.Add(new DialogCutsceneSteps
+        firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("VÁ CRIATURA, me deixe às minhas novelas, os mortos não me entretém tanto quanto os vivos."),
             hasCaptionFadeIn = true,
@@ -205,78 +247,96 @@ public class Scene_recepcao : Scene
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
 
-        SetupDialog(_vigia, vigiaSteps);
+        // Unlocks the right exit (Boiler) when the first dialog ends.
+        _firstTalk = CreateTalk(firstSteps, () => GameSession.Stage = StoryStage.FalouComVigia);
 
-        // ----- Diálogo do segundo NPC (só aparece depois de falar com o VIGIA) -----
+        // ----- TalkedToWatcher stage: reminder (replace placeholder text) -----
+        List<DialogCutsceneSteps> reminderSteps = new();
+
+        reminderSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Siga pela direita, Alma. A Caldeira te aguarda."),
+            hasCaptionFadeIn = true,
+            durationInMillis = 4000,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+
+        _reminderTalk = CreateTalk(reminderSteps, null);
+
+        // ----- Judged stage: the Watcher becomes agitated (replace placeholder text) -----
         List<DialogCutsceneSteps> secondSteps = new();
 
         secondSteps.Add(new DialogCutsceneSteps
         {
-            caption = Wrap("Texto do segundo NPC 1"),
+            caption = Wrap("Texto do Vigia depois da Justiça 1"),
             hasCaptionFadeIn = true,
             durationInMillis = 4000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         secondSteps.Add(new DialogCutsceneSteps
         {
-            caption = Wrap("Texto do segundo NPC 2"),
+            caption = Wrap("Texto do Vigia depois da Justiça 2"),
             hasCaptionFadeIn = true,
             durationInMillis = 4000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         secondSteps.Add(new DialogCutsceneSteps
         {
-            caption = Wrap("Texto do segundo NPC 3"),
+            caption = Wrap("Texto do Vigia depois da Justiça 3"),
             hasCaptionFadeIn = true,
             durationInMillis = 4000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
 
-        SetupDialog(_secondNpc, secondSteps);
+        // When finished, the Watcher guides Alma to the Haunted Train and unlocks the left exit.
+        _secondTalk = CreateTalk(secondSteps, () => GameSession.Stage = StoryStage.VagaoAssombrado);
+
+        // ----- Other stages (replace placeholder text) -----
+        List<DialogCutsceneSteps> idleSteps = new();
+
+        idleSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Não tenho mais nada a dizer, Alma. Siga o seu caminho."),
+            hasCaptionFadeIn = true,
+            durationInMillis = 4000,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+
+        _idleTalk = CreateTalk(idleSteps, null);
     }
 
-    private AnimatedSprite CreateNpcSprite(TextureAtlas atlas, string animationName, float scale)
+    // Creates a dialog controller and calculates the total duration of its steps.
+    private Talk CreateTalk(List<DialogCutsceneSteps> steps, Action onFinished)
     {
-        AnimatedSprite sprite = atlas.CreateAnimatedSprite(animationName);
-        sprite.Scale = new Vector2(scale, scale);
-        return sprite;
-    }
-
-    private Vector2 NpcPosition(int col, int row, AnimatedSprite sprite)
-    {
-        float tileX = col * _slimeWall.Width;
-        float tileY = row * _slimeWall.Height;
-
-        return new Vector2(
-            tileX + (_slimeWall.Width - sprite.Width) * 0.5f,
-            tileY + (_slimeWall.Height - sprite.Height)
-        );
-    }
-
-    private void SetupDialog(DialogNpc npc, List<DialogCutsceneSteps> steps)
-    {
-        npc.TotalMs = 0;
+        double total = 0;
         foreach (var step in steps)
         {
-            npc.TotalMs += step.durationInMillis;
+            total += step.durationInMillis;
         }
 
-        npc.Dialog = new DialogCutsceneController(steps, Color.Black, _font, Core.GraphicsDevice);
+        return new Talk
+        {
+            Dialog = new DialogCutsceneController(steps, Color.Black, _font, Core.GraphicsDevice),
+            TotalMs = total,
+            OnFinished = onFinished
+        };
     }
 
-    // Verifica se o slime está perto o bastante de um NPC para conversar.
-    private bool IsNearNpc(Circle slimeBounds, DialogNpc npc)
+    // Selects the Watcher's dialog based on the current story stage.
+    private Talk ChooseTalk()
     {
-        Circle talkBounds = new Circle(
-            (int)(npc.Position.X + (npc.Sprite.Width * 0.5f)),
-            (int)(npc.Position.Y + (npc.Sprite.Height * 0.5f)),
-            (int)(_slimeWall.Width * 1.0f)
-        );
-
-        return slimeBounds.Intersects(talkBounds);
+        return GameSession.Stage switch
+        {
+            StoryStage.Intro => _firstTalk,
+            StoryStage.FalouComVigia => _reminderTalk,
+            StoryStage.Julgada => _secondTalk,
+            _ => _idleTalk
+        };
     }
 
-    // Quebra o texto em linhas para ele nunca passar das bordas da tela.
+    // Wraps dialog text to keep it within the screen boundaries.
+    // Uses the dialog font to ensure accurate text measurements.
+    // Preserves manual line breaks written as "\n" in the text.
     private string Wrap(string text)
     {
         float maxWidth = Core.GraphicsDevice.PresentationParameters.BackBufferWidth * DIALOG_MAX_WIDTH_RATIO;
@@ -301,7 +361,7 @@ public class Scene_recepcao : Scene
 
                 if (lineWidth > 0f && lineWidth + spaceWidth + wordWidth > maxWidth)
                 {
-                    // A palavra não cabe na linha atual, então começa uma nova.
+                    // Moves the word to a new line when it exceeds the current line width.
                     result.Append('\n');
                     lineWidth = 0f;
                 }
@@ -319,178 +379,158 @@ public class Scene_recepcao : Scene
         return result.ToString();
     }
 
+    // ---------- Update ----------
+
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
 
-        // Atualiza animação e câmera
-        _slime.Update(gameTime);
-        _vigia.Sprite.Update(gameTime);
-        _secondNpc.Sprite.Update(gameTime);
-        _camera.Follow(_slimePosition, Core.GraphicsDevice.Viewport);
+        float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-        // O áudio sempre funciona, mas o slime não anda enquanto um diálogo toca.
+        _player.Update(gameTime);
+        _vigia.Update(gameTime);
+
+        // Audio input remains active, but player movement is disabled during dialogs.
         CheckAudioInput();
-        if (_activeNpc == null)
+#if DEBUG
+        CheckDebugKeys();
+#endif
+        if (_activeTalk == null)
         {
-            CheckKeyboardInput();
+            MovePlayer(dt);
         }
-        CheckWallCollisions();
 
-        // Círculo de colisão do jogador
-        Circle slimeBounds = new Circle(
-            (int)(_slimePosition.X + (_slime.Width * 0.5f)),
-            (int)(_slimePosition.Y + (_slime.Height * 0.5f)),
-            (int)(_slime.Width * 0.5f)
-        );
+        UpdateCamera(dt, snap: false);
 
-        int tileWidth = (int)_slimeWall.Width;
-        int tileHeight = (int)_slimeWall.Height;
+        // Turns the Watcher toward the player's position.
+        _vigia = _playerX < _vigiaX ? _vigiaLeft : _vigiaRight;
 
-        // Círculo da Saída Esquerda (GameScene)
-        int leftExitCol = 1;
-        int leftExitRow = 8;
-        Circle leftExitBounds = new Circle(
-            (int)(leftExitCol * tileWidth + tileWidth * 0.5f),
-            (int)(leftExitRow * tileHeight + tileHeight * 0.5f),
-            (int)(tileWidth * 0.5f)
-        );
-
-        // Círculo da Saída Direita (Caldeirão)
-        int rightExitCol = 18;
-        int rightExitRow = 8;
-        Circle rightExitBounds = new Circle(
-            (int)(rightExitCol * tileWidth + tileWidth * 0.5f),
-            (int)(rightExitRow * tileHeight + tileHeight * 0.5f),
-            (int)(tileWidth * 0.5f)
-        );
-
-        _isAtLeftExit = slimeBounds.Intersects(leftExitBounds);
-        _isAtRightExit = slimeBounds.Intersects(rightExitBounds);
-        if (_activeNpc != null)
+        // Updates the active dialog timer and ends the dialog when it reaches zero.
+        // If DialogCutsceneController exposes an IsPlaying/IsFinished property,
+        // use it instead of this timer.
+        if (_activeTalk != null)
         {
-            _dialogRemainingMs -= gameTime.ElapsedGameTime.TotalMilliseconds;
-            if (_dialogRemainingMs <= 0)
+            _talkRemainingMs -= gameTime.ElapsedGameTime.TotalMilliseconds;
+            if (_talkRemainingMs <= 0)
             {
-                if (_activeNpc == _vigia)
-                {
-                    GameSession.TalkedToVigia = true;
-                }
-
-                _activeNpc = null;
+                Talk finished = _activeTalk;
+                _activeTalk = null;
+                finished.OnFinished?.Invoke();
             }
         }
 
-        _talkNpc = null;
-        if (_activeNpc == null)
+        // Checks the player's proximity to the Watcher and exit arches.
+        _canTalk = _activeTalk == null && MathF.Abs(_playerX - _vigiaX) < TALK_RANGE;
+        _isAtLeftExit = MathF.Abs(_playerX - _leftExitX) < EXIT_RANGE;
+        _isAtRightExit = MathF.Abs(_playerX - _rightExitX) < EXIT_RANGE;
+
+        // The right arch (Boiler) unlocks after speaking to the Watcher; the
+        // left arch (Haunted Train) unlocks after the Watcher guides Alma there.
+        _rightExitOpen = GameSession.Stage >= StoryStage.FalouComVigia;
+        _leftExitOpen = GameSession.Stage >= StoryStage.VagaoAssombrado;
+
+        if (_activeTalk == null && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
         {
-            if (IsNearNpc(slimeBounds, _vigia))
+            if (_canTalk)
             {
-                _talkNpc = _vigia;
+                StartTalk(ChooseTalk());
             }
-            else if (GameSession.TalkedToVigia && IsNearNpc(slimeBounds, _secondNpc))
+            else if (_isAtLeftExit && _leftExitOpen)
             {
-                _talkNpc = _secondNpc;
+                // TODO: Replace with the Haunted Train scene when it is available.
+                Core.ChangeScene(new GameScene());
+                return;
             }
-        }
-
-        // Inicia o diálogo quando a tecla E é pressionada perto de um NPC.
-        if (_talkNpc != null && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
-        {
-            Core.Audio.PlaySoundEffect(_collectSoundEffect);
-
-            // O jogador vira de frente para o NPC com quem vai conversar.
-            float npcCenterX = _talkNpc.Position.X + (_talkNpc.Sprite.Width * 0.5f);
-            float slimeCenterX = _slimePosition.X + (_slime.Width * 0.5f);
-            _slime = npcCenterX < slimeCenterX ? _slimeLeft : _slimeRight;
-
-            _activeNpc = _talkNpc;
-            _dialogRemainingMs = _talkNpc.TotalMs;
-            _talkNpc.Dialog.Start();
-        }
-
-        // Trata a troca de cena
-        if (_isAtLeftExit && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
-        {
-            Core.ChangeScene(new GameScene());
-            return;
-        }
-
-        if (_isAtRightExit && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
-        {
-            Core.ChangeScene(new Scene_caldeirao());
-            return;
-        }
-    }
-
-    private void CheckWallCollisions()
-    {
-        Circle slimeBounds = new Circle(
-            (int)(_slimePosition.X + (_slime.Width * 0.5f)),
-            (int)(_slimePosition.Y + (_slime.Height * 0.5f)),
-            (int)(_slime.Width * 0.5f)
-        );
-
-        foreach (Circle? wallNullable in _mapSlimesBounds)
-        {
-            if (!wallNullable.HasValue)
-                continue;
-
-            Circle wall = wallNullable.Value;
-            Vector2 slimeCenter = new Vector2(_slimePosition.X + _slime.Width * 0.5f, _slimePosition.Y + _slime.Height * 0.5f);
-            Vector2 wallCenter = new Vector2(wall.X, wall.Y);
-
-            Vector2 direction = slimeCenter - wallCenter;
-            float distance = direction.Length();
-            float minDistance = slimeBounds.Radius + wall.Radius;
-
-            if (distance < minDistance)
+            else if (_isAtRightExit && _rightExitOpen)
             {
-                if (distance == 0)
-                {
-                    direction = Vector2.UnitX;
-                    distance = 1;
-                }
-
-                direction.Normalize();
-                float overlap = minDistance - distance;
-                _slimePosition += direction * overlap;
+                Core.ChangeScene(new Scene_caldeirao());
+                return;
             }
         }
     }
 
-    private void CheckKeyboardInput()
+    private void StartTalk(Talk talk)
     {
-        float speed = MOVEMENT_SPEED;
+        Core.Audio.PlaySoundEffect(_collectSoundEffect);
+
+        // Turns the player toward the Watcher.
+        _player = _vigiaX < _playerX ? _playerLeft : _playerRight;
+
+        _activeTalk = talk;
+        _talkRemainingMs = talk.TotalMs;
+        talk.Dialog.Start();
+    }
+
+    // Moves the player horizontally only; vertical movement is not supported.
+    private void MovePlayer(float dt)
+    {
+        float speed = PLAYER_SPEED;
         if (Core.Input.Keyboard.IsKeyDown(Keys.Space))
         {
-            speed *= 1.5f;
+            speed *= SPRINT_MULTIPLIER;
         }
 
-        if (Core.Input.Keyboard.IsKeyDown(Keys.W) || Core.Input.Keyboard.IsKeyDown(Keys.Up))
-        {
-            _slimePosition.Y -= speed;
-        }
-
-        if (Core.Input.Keyboard.IsKeyDown(Keys.S) || Core.Input.Keyboard.IsKeyDown(Keys.Down))
-        {
-            _slimePosition.Y += speed;
-        }
+        // Switches to the matching sprite when moving left or right.
         if (Core.Input.Keyboard.IsKeyDown(Keys.A) || Core.Input.Keyboard.IsKeyDown(Keys.Left))
         {
-            _slimePosition.X -= speed;
-            _slime = _slimeLeft;
+            _playerX -= speed * dt;
+            _player = _playerLeft;
         }
 
         if (Core.Input.Keyboard.IsKeyDown(Keys.D) || Core.Input.Keyboard.IsKeyDown(Keys.Right))
         {
-            _slimePosition.X += speed;
-            _slime = _slimeRight;
+            _playerX += speed * dt;
+            _player = _playerRight;
         }
+
+        // Clamps the player within the background boundaries.
+        _playerX = MathHelper.Clamp(_playerX, WORLD_MARGIN, _background.Width - WORLD_MARGIN);
     }
+
+    // Calculates the scale needed to match the background height to the window.
+    private float GetWorldScale()
+    {
+        return Core.GraphicsDevice.PresentationParameters.BackBufferHeight / (float)_background.Height;
+    }
+
+    // Follows the player horizontally while staying within the background.
+    private void UpdateCamera(float dt, bool snap)
+    {
+        float scale = GetWorldScale();
+        float viewWidth = Core.GraphicsDevice.PresentationParameters.BackBufferWidth / scale;
+        float maxCameraX = MathF.Max(0f, _background.Width - viewWidth);
+
+        float target = MathHelper.Clamp(_playerX - viewWidth * 0.5f, 0f, maxCameraX);
+
+        _cameraX = snap
+            ? target
+            : MathHelper.Lerp(_cameraX, target, MathHelper.Clamp(8f * dt, 0f, 1f));
+    }
+
+#if DEBUG
+    // Debug shortcuts only (not included in the final game):
+    // F1-F4 change the story stage; F5-F7 add items to the inventory.
+    private void CheckDebugKeys()
+    {
+        var keyboard = Core.Input.Keyboard;
+
+        if (keyboard.WasKeyJustPressed(Keys.F1)) GameSession.Stage = StoryStage.Intro;
+        if (keyboard.WasKeyJustPressed(Keys.F2)) GameSession.Stage = StoryStage.FalouComVigia;
+        if (keyboard.WasKeyJustPressed(Keys.F3)) GameSession.Stage = StoryStage.Julgada;
+        if (keyboard.WasKeyJustPressed(Keys.F4)) GameSession.Stage = StoryStage.VagaoAssombrado;
+
+        if (keyboard.WasKeyJustPressed(Keys.F5)) GameSession.Inventory.CollectItem(GameItems.MaskId, GameItems.MaskIcon);
+        if (keyboard.WasKeyJustPressed(Keys.F6)) GameSession.Inventory.CollectItem(GameItems.NecklaceId, GameItems.NecklaceIcon);
+        if (keyboard.WasKeyJustPressed(Keys.F7)) GameSession.Inventory.CollectItem(GameItems.HairId, GameItems.HairIcon);
+    }
+#endif
+
+    // NOTE: If M, +, and - are already handled by GlobalControls in
+    // Core.Update, remove this method and its Update call to avoid handling
+    // each key twice (for example, toggling mute twice cancels itself).
     private void CheckAudioInput()
     {
-        // Tecla M: liga/desliga o mudo.
+        // M key: toggles mute.
         if (Core.Input.Keyboard.WasKeyJustPressed(Keys.M))
         {
             Core.Audio.ToggleMute();
@@ -509,80 +549,75 @@ public class Scene_recepcao : Scene
         }
     }
 
+    // ---------- Draw ----------
+
     public override void Draw(GameTime gameTime)
     {
-        Core.GraphicsDevice.Clear(Color.Beige);
+        Core.GraphicsDevice.Clear(Color.Black);
 
-        // World Layer (Camera Matrix)
-        Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp, transformMatrix: _camera.TransformMatrix);
+        // World layer: draws the background, Watcher, and player with horizontal camera scrolling.
+        // The high-resolution artwork is scaled down, so it uses
+        // LinearClamp (PointClamp would make thin edges look jagged).
+        float scale = GetWorldScale();
+        Matrix worldMatrix =
+            Matrix.CreateTranslation(-_cameraX, 0f, 0f) *
+            Matrix.CreateScale(scale, scale, 1f);
 
-        for (int row = 0; row < map.GetLength(0); row++)
-        {
-            for (int col = 0; col < map.GetLength(1); col++)
-            {
-                bool isNpcTile = row == NPC_ROW && (col == VIGIA_COL || col == SECOND_NPC_COL);
+        Core.SpriteBatch.Begin(samplerState: SamplerState.LinearClamp, transformMatrix: worldMatrix);
 
-                if (map[row, col] == 1 && !isNpcTile)
-                {
-                    Vector2 wallPos = new Vector2(col * _slimeWall.Width, row * _slimeWall.Height);
-                    _slimeWall.Draw(Core.SpriteBatch, wallPos);
-                }
-            }
-        }
+        _background.Draw(Core.SpriteBatch, Vector2.Zero);
 
-        _vigia.Sprite.Draw(Core.SpriteBatch, _vigia.Position);
-        _secondNpc.Sprite.Draw(Core.SpriteBatch, _secondNpc.Position);
-        _slime.Draw(Core.SpriteBatch, _slimePosition);
+        // Sprites are drawn from the top-left corner, keeping their feet aligned at GROUND_Y.
+        _vigia.Draw(Core.SpriteBatch, new Vector2(_vigiaX - _vigia.Width * 0.5f, GROUND_Y - _vigia.Height));
+        _player.Draw(Core.SpriteBatch, new Vector2(_playerX - _player.Width * 0.5f, GROUND_Y - _player.Height));
 
         Core.SpriteBatch.End();
 
-        // Screen / GUI Layer
-        Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
-
-        Core.SpriteBatch.DrawString(
-            _font,
-            $"Score: {GameSession.Score}",
-            new Vector2(60, 60),
-            Color.White
-        );
+        // Screen / UI layer
+        Core.SpriteBatch.Begin(samplerState: SamplerState.LinearClamp);
 
         GameSession.Inventory.Draw(Core.SpriteBatch, new Vector2(60, 60));
 
-        // Renderiza o prompt de texto de acordo com a posição do jogador
-        if (_talkNpc != null)
+        // Displays the interaction prompt based on player position (hidden during dialogs).
+        string prompt = null;
+        Color promptColor = Color.Yellow;
+
+        if (_activeTalk == null)
         {
-            Vector2 textSize = _font.MeasureString(PRESS_E_TALK);
-            Vector2 pos = new Vector2(
-                (Core.GraphicsDevice.PresentationParameters.BackBufferWidth - textSize.X) * 0.5f,
-                Core.GraphicsDevice.PresentationParameters.BackBufferHeight - 100
-            );
-            Core.SpriteBatch.DrawString(_font, PRESS_E_TALK, pos, Color.Yellow);
+            if (_canTalk)
+            {
+                prompt = PRESS_E_TALK;
+            }
+            else if (_isAtLeftExit)
+            {
+                prompt = _leftExitOpen ? PRESS_E_LEFT : LOCKED_LEFT;
+                promptColor = _leftExitOpen ? Color.Yellow : Color.LightGray;
+            }
+            else if (_isAtRightExit)
+            {
+                prompt = _rightExitOpen ? PRESS_E_RIGHT : LOCKED_RIGHT;
+                promptColor = _rightExitOpen ? Color.Yellow : Color.LightGray;
+            }
         }
-        else if (_isAtLeftExit)
+
+        if (prompt != null)
         {
-            Vector2 textSize = _font.MeasureString(PRESS_E_GAMESCENE);
+            Vector2 textSize = _font.MeasureString(prompt);
             Vector2 pos = new Vector2(
                 (Core.GraphicsDevice.PresentationParameters.BackBufferWidth - textSize.X) * 0.5f,
                 Core.GraphicsDevice.PresentationParameters.BackBufferHeight - 100
             );
-            Core.SpriteBatch.DrawString(_font, PRESS_E_GAMESCENE, pos, Color.Yellow);
-        }
-        else if (_isAtRightExit)
-        {
-            Vector2 textSize = _font.MeasureString(PRESS_E_CALDEIRAO);
-            Vector2 pos = new Vector2(
-                (Core.GraphicsDevice.PresentationParameters.BackBufferWidth - textSize.X) * 0.5f,
-                Core.GraphicsDevice.PresentationParameters.BackBufferHeight - 100
-            );
-            Core.SpriteBatch.DrawString(_font, PRESS_E_CALDEIRAO, pos, Color.Yellow);
+            Core.SpriteBatch.DrawString(_font, prompt, pos, promptColor);
         }
 
         Core.SpriteBatch.End();
 
-        // Renderiza o diálogo por cima de tudo (cada controller só desenha enquanto o dele toca).
+        // Draws dialogs above all other layers; each controller renders only while active.
         Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
-        _vigia.Dialog.Draw(Core.SpriteBatch, gameTime);
-        _secondNpc.Dialog.Draw(Core.SpriteBatch, gameTime);
+        _firstTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
+        _reminderTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
+        _secondTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
+        _idleTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
         Core.SpriteBatch.End();
 
         base.Draw(gameTime);

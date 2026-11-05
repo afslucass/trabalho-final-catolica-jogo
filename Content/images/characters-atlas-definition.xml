@@ -2,12 +2,32 @@
 <TextureAtlas>
     <Texture>images/spritesheet-final</Texture>
     <Regions>
-        <Region name="player-1" x="143" y="107" width="135" height="242" />
-        <Region name="player-2" x="287" y="107" width="135" height="242" />
-        <Region name="hooded"   x="69"  y="371" width="304" height="444" />
-        <Region name="owl-1"    x="92"  y="843" width="359" height="532" />
-        <Region name="owl-2"    x="462" y="843" width="359" height="532" />
-        <Region name="doctor"   x="77"  y="1436" width="324" height="649" />
+        <Region name="player-1" x="138" y="100" width="147" height="259" />
+        <Region name="player-2" x="287" y="100" width="147" height="259" />
+
+        <Region name="hooded" x="60" y="360" width="321" height="465" />
+        <Region name="owl-1" x="84" y="835" width="376" height="549" />
+        <Region name="owl-2" x="465" y="835" width="376" height="549" />
+        <Region name="doctor" x="69" y="1429" width="336" height="662" />
+
+        <Region name="doll-head" x="484" y="36" width="414" height="395" />
+        <Region name="doll-base" x="916" y="101" width="414" height="330" />
+        <Region name="fire-1" x="1430" y="73" width="151" height="355" />
+        <Region name="fire-2" x="1605" y="6" width="142" height="403" />
+
+        <Region name="item-face" x="489" y="555" width="107" height="112" />
+        <Region name="item-skirt-1" x="632" y="556" width="162" height="132" />
+        <Region name="item-hair-1" x="829" y="526" width="158" height="182" />
+        <Region name="item-hair-2" x="1027" y="530" width="289" height="171" />
+        <Region name="item-skirt-2" x="1372" y="514" width="262" height="224" />
+
+        <Region name="scale-1" x="90" y="2152" width="509" height="868" />
+        <Region name="scale-2" x="608" y="2234" width="616" height="786" />
+        <Region name="scale-3" x="1233" y="2327" width="638" height="693" />
+
+        <Region name="bg-recepcao" x="2146" y="18" width="3840" height="1080" />
+        <Region name="bg-caldeirao" x="4062" y="1116" width="1920" height="1080" />
+        <Region name="bg-sala3" x="3988" y="2212" width="2000" height="1080" />
     </Regions>
     <Animations>
         <Animation name="player-1-animation" delay="200">
