@@ -316,7 +316,7 @@ public class Scene_recepcao : Scene
 
         return new Talk
         {
-            Dialog = new DialogCutsceneController(steps, Color.Black, _font, Core.GraphicsDevice),
+            Dialog = new DialogCutsceneController(steps, Color.White, _font, Core.GraphicsDevice),
             TotalMs = total,
             OnFinished = onFinished
         };
