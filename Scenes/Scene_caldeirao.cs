@@ -98,7 +98,7 @@ public class Scene_caldeirao : Scene
         _recepcaoExitX = _background_RECEPCAO.Width * EXIT_RATIO;
 
         // Load the font
-        _font = Content.Load<SpriteFont>("fonts/04B_30");
+        _font = Content.Load<SpriteFont>("fonts/KiwiSoda");
         _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
     }
 
