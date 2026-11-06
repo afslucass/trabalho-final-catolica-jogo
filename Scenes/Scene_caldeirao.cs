@@ -43,6 +43,12 @@ public class Scene_caldeirao : Scene
     private const string PLAYER_LEFT_ANIMATION = "player-2-animation";
     private const string PLAYER_RIGHT_ANIMATION = "player-1-animation";
 
+    // ---------- Watcher ----------
+    private AnimatedSprite _raposo;
+    private float _raposoX;
+
+    private const string RAPOSO_ANIMATION = "hooded-animation";
+
     private SpriteFont _font;
 
     private const string PRESS_E_INTERECT = "Press E for go to Recepção";
@@ -86,6 +92,9 @@ public class Scene_caldeirao : Scene
         _playerRight.Scale = Vector2.One;
         _player = _playerRight;
 
+        _raposo = charactersAtlas.CreateAnimatedSprite(RAPOSO_ANIMATION);
+        _raposo.Scale = Vector2.One;
+
         _recepcaoExitX = _background_RECEPCAO.Width * EXIT_RATIO;
 
         // Load the font
@@ -100,6 +109,7 @@ public class Scene_caldeirao : Scene
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
         _player.Update(gameTime);
+        _raposo.Update(gameTime);
         
         // Check for keyboard input and handle it.
         CheckKeyboardInput(dt);
@@ -192,6 +202,7 @@ public class Scene_caldeirao : Scene
 
         _background_RECEPCAO.Draw(Core.SpriteBatch, Vector2.Zero);
 
+        _raposo.Draw(Core.SpriteBatch, new Vector2(_raposoX - _raposo.Width * -1.5f, GROUND_Y - _raposo.Height));
         _player.Draw(Core.SpriteBatch, new Vector2(_playerX - _player.Width * 0.5f, GROUND_Y - _player.Height));
 
         Core.SpriteBatch.End();
@@ -206,7 +217,7 @@ public class Scene_caldeirao : Scene
                 _font,
                 PRESS_E_INTERECT,
                 _pressEInterectPos,
-                Color.Black,
+                Color.White,
                 0.0f,
                 _font.MeasureString(PRESS_E_INTERECT) * 0.5f,
                 1.0f,
