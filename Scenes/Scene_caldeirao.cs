@@ -15,192 +15,139 @@ namespace TestGame.Scenes;
 
 public class Scene_caldeirao : Scene
 {
-    private Camera2D _camera;
-    private AnimatedSprite _slime;
-    private Vector2 _slimePosition;
-    private Sprite _slimeWall;
+    private Sprite _background_RECEPCAO;
+    private float _cameraX;
 
-    readonly private int[,] map = {
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
-    { 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1 },
-    { 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 },
-    { 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1 },
-    { 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1 },
-    { 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1 },
-    { 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 },
-    { 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1 },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
-    };
+    // Character foot position, measured in background pixels.
+    // The floor (bottom black strip) spans y=955 to y=1080.
+    private const float GROUND_Y = 1010f;
 
-    private Circle?[,] mapSlimesBounds;
+    // ---------- Player ----------
+    // Two mirrored sprites, one facing each direction.
+    // _player always references the active sprite.
+    private AnimatedSprite _player;
+    private AnimatedSprite _playerLeft;
+    private AnimatedSprite _playerRight;
 
-    private const float MOVEMENT_SPEED = 5.0f;
+    // Horizontal position of the player's foot center, in background pixels.
+    private float _playerX;
+    // Movement speed in background pixels per second (Space applies the sprint multiplier).
+    private const float PLAYER_SPEED = 450f;
+    private const float SPRINT_MULTIPLIER = 1.6f;
+
+    // Minimum distance from the world boundaries.
+    private const float WORLD_MARGIN = 200f;
+    
+    // In this game, player-2 faces left and player-1 faces
+    // right (verified). Update these names if the sprite sheet changes.
+    private const string PLAYER_LEFT_ANIMATION = "player-2-animation";
+    private const string PLAYER_RIGHT_ANIMATION = "player-1-animation";
+
+    // ---------- Watcher ----------
+    private AnimatedSprite _raposo;
+    private float _raposoX;
+
+    private const string RAPOSO_ANIMATION = "hooded-animation";
 
     private SpriteFont _font;
 
-    private const string PRESS_E_INTERECT = "Press E for go to the next scene";
+    private const string PRESS_E_INTERECT = "Press E for go to Recepção";
 
     private Vector2 _pressEInterectPos;
+    private const float EXIT_RANGE_RECEPCAO = 150f;
+    private const float EXIT_RATIO = 0.100f;
     private bool _isAtExit;
+    private float _recepcaoExitX;
 
     public override void Initialize()
     {
         base.Initialize();
-        _camera = new Camera2D();
+        float worldWidth = _background_RECEPCAO.Width;
+        _playerX = _recepcaoExitX + 100f;
+        _player = _playerRight;
         
         // Set the position of the press E text
         Vector2 size = _font.MeasureString(PRESS_E_INTERECT);
         _pressEInterectPos = new Vector2(Core.GraphicsDevice.PresentationParameters.BackBufferWidth / 2, 800);
 
-        mapSlimesBounds = new Circle?[map.GetLength(0), map.GetLength(1)];
-        for (int row = 0; row < map.GetLength(0); row++)
-        {
-            for (int col = 0; col < map.GetLength(1); col++)
-            {
-                if (map[row, col] == 1)
-                {
-                    float x = col * _slime.Width;
-                    float y = row * _slime.Height;
-                    mapSlimesBounds[row, col] = new Circle(
-                        (int)(x + _slime.Width * 0.5f),
-                        (int)(y + _slime.Height * 0.5f),
-                        (int)(_slime.Width * 0.5f)
-                    );
-                }
-                else
-                {
-                    mapSlimesBounds[row, col] = null;
-                }
-            }
-        }
+        UpdateCamera(0f, snap: true);       
     }
 
     public override void LoadContent()
     {
         base.LoadContent();
 
+        TextureAtlas charactersAtlas = TextureAtlas.FromFile(Content, "images/characters-atlas-definition.xml");
         TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
 
-        _slime = atlas.CreateAnimatedSprite("slime-animation");
-        _slime.Scale = new Vector2(4.0f, 4.0f);
-        _slimePosition = new Vector2(_slime.Width*7, _slime.Height*14);
+        // Reception background (3840 x 1080), drawn at its native size.
+        _background_RECEPCAO = charactersAtlas.CreateSprite("bg-caldeirao");
+        _background_RECEPCAO.Scale = Vector2.One;
 
-        _slimeWall = atlas.CreateSprite("slime-2");
-        _slimeWall.Scale = new Vector2(4.0f, 4.0f);
+
+        // Player sprites: one for each direction (matching sizes prevent position jumps).
+        _playerLeft = charactersAtlas.CreateAnimatedSprite(PLAYER_LEFT_ANIMATION);
+        _playerLeft.Scale = Vector2.One;
+        _playerRight = charactersAtlas.CreateAnimatedSprite(PLAYER_RIGHT_ANIMATION);
+        _playerRight.Scale = Vector2.One;
+        _player = _playerRight;
+
+        _raposo = charactersAtlas.CreateAnimatedSprite(RAPOSO_ANIMATION);
+        _raposo.Scale = Vector2.One;
+
+        _recepcaoExitX = _background_RECEPCAO.Width * EXIT_RATIO;
 
         // Load the font
         _font = Content.Load<SpriteFont>("fonts/04B_30");
+        _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
     }
 
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
 
-        _slime.Update(gameTime);
-        _camera.Follow(_slimePosition, Core.GraphicsDevice.Viewport);
+        float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+        _player.Update(gameTime);
+        _raposo.Update(gameTime);
         
         // Check for keyboard input and handle it.
-        CheckKeyboardInput();
+        CheckKeyboardInput(dt);
 
-        Circle slimeBounds = new(
-            (int)(_slimePosition.X + (_slime.Width * 0.5f)),
-            (int)(_slimePosition.Y + (_slime.Height * 0.5f)),
-            (int)(_slime.Width * 0.5f)
-        );
+        UpdateCamera(dt, snap: false);
 
-        foreach (Circle? mapSlimeBoundsNullable in mapSlimesBounds)
-        {
-            if (!mapSlimeBoundsNullable.HasValue)
-                continue;
-
-            Circle wall = mapSlimeBoundsNullable.Value;
-            Vector2 slimeCenter = new Vector2(
-                _slimePosition.X + _slime.Width * 0.5f,
-                _slimePosition.Y + _slime.Height * 0.5f
-            );
-            Vector2 wallCenter = new Vector2(
-                wall.X,
-                wall.Y
-            );
-
-            Vector2 direction = slimeCenter - wallCenter;
-            float distance = direction.Length();
-            float minDistance = slimeBounds.Radius + wall.Radius;
-
-            if (distance < minDistance)
-            {
-                if (distance == 0)
-                {
-                    direction = Vector2.UnitX;
-                    distance = 1;
-                }
-
-                direction.Normalize();
-                float overlap = minDistance - distance;
-                _slimePosition += direction * overlap;
-            }
-        }
-
-        // Define the column and row indices for the map exit tile.
-        int exitCol = 01; 
-        int exitRow = 14; 
-        // Get the tile dimensions based on the wall sprite size.
-        int tileWidth = (int)_slimeWall.Width;
-        int tileHeight = (int)_slimeWall.Height;
-        // Create a bounding circle for the exit tile.
-        Circle exitBounds = new Circle(
-            (int)(exitCol * tileWidth + tileWidth * 0.5f),
-            (int)(exitRow * tileHeight + tileHeight * 0.5f),
-            (int)(tileWidth * 0.5f)
-        );
         // Check for collision between the slime and the exit point to trigger a scene change.
-        _isAtExit = slimeBounds.Intersects(exitBounds);
+        _isAtExit = MathF.Abs(_playerX - _recepcaoExitX) < EXIT_RANGE_RECEPCAO;
         if (_isAtExit && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
         {
-            Core.ChangeScene(new GameScene());
+            Core.ChangeScene(new Scene_recepcao());
             return;
         }
     }
 
-    private void CheckKeyboardInput()
+    private void CheckKeyboardInput(float dt)
     {
-        // If the space key is held down, the movement speed increases by 1.5
-        float speed = MOVEMENT_SPEED;
+        float speed = PLAYER_SPEED;
         if (Core.Input.Keyboard.IsKeyDown(Keys.Space))
         {
-            speed *= 1.5f;
+            speed *= SPRINT_MULTIPLIER;
         }
 
-        // If the W or Up keys are down, move the slime up on the screen.
-        if (Core.Input.Keyboard.IsKeyDown(Keys.W) || Core.Input.Keyboard.IsKeyDown(Keys.Up))
-        {
-            _slimePosition.Y -= speed;
-        }
-
-        // if the S or Down keys are down, move the slime down on the screen.
-        if (Core.Input.Keyboard.IsKeyDown(Keys.S) || Core.Input.Keyboard.IsKeyDown(Keys.Down))
-        {
-            _slimePosition.Y += speed;
-        }
-
-        // If the A or Left keys are down, move the slime left on the screen.
+        // Switches to the matching sprite when moving left or right.
         if (Core.Input.Keyboard.IsKeyDown(Keys.A) || Core.Input.Keyboard.IsKeyDown(Keys.Left))
         {
-            _slimePosition.X -= speed;
+            _playerX -= speed * dt;
+            _player = _playerLeft;
         }
 
-        // If the D or Right keys are down, move the slime right on the screen.
         if (Core.Input.Keyboard.IsKeyDown(Keys.D) || Core.Input.Keyboard.IsKeyDown(Keys.Right))
         {
-            _slimePosition.X += speed;
+            _playerX += speed * dt;
+            _player = _playerRight;
         }
+
+        // Clamps the player within the background boundaries.
+        _playerX = MathHelper.Clamp(_playerX, WORLD_MARGIN, _background_RECEPCAO.Width - WORLD_MARGIN);
 
         // If the M key is pressed, toggle mute state for audio.
         if (Core.Input.Keyboard.WasKeyJustPressed(Keys.M))
@@ -221,32 +168,48 @@ public class Scene_caldeirao : Scene
             Core.Audio.SongVolume -= 0.1f;
             Core.Audio.SoundEffectVolume -= 0.1f;
         }
+
+        _playerX = MathHelper.Clamp(_playerX, WORLD_MARGIN, _background_RECEPCAO.Width - WORLD_MARGIN);
+    }
+
+    private float GetWorldScale()
+    {
+        return Core.GraphicsDevice.PresentationParameters.BackBufferHeight / (float)_background_RECEPCAO.Height;
+    }
+    private void UpdateCamera(float dt, bool snap)
+    {
+        float scale = GetWorldScale();
+        float viewWidth = Core.GraphicsDevice.PresentationParameters.BackBufferWidth / scale;
+        float maxCameraX = MathF.Max(0f, _background_RECEPCAO.Width - viewWidth);
+
+        float target = MathHelper.Clamp(_playerX - viewWidth * 0.5f, 0f, maxCameraX);
+
+        _cameraX = snap
+            ? target
+            : MathHelper.Lerp(_cameraX, target, MathHelper.Clamp(8f * dt, 0f, 1f));
     }
 
     public override void Draw(GameTime gameTime)
     {
         Core.GraphicsDevice.Clear(Color.DarkSlateGray);
 
-        Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp, transformMatrix: _camera.TransformMatrix);
-        _slime.Draw(Core.SpriteBatch, _slimePosition);
-        // Draw the slime sprite.
-        _slime.Draw(Core.SpriteBatch, _slimePosition);
+        float scale = GetWorldScale();
+        Matrix worldMatrix =
+            Matrix.CreateTranslation(-_cameraX, 0f, 0f) *
+            Matrix.CreateScale(scale, scale, 1f);
+        
+        Core.SpriteBatch.Begin(samplerState: SamplerState.LinearClamp, transformMatrix: worldMatrix);
 
-        for (int row = 0; row < map.GetLength(0); row++)
-        {
-            for (int col = 0; col < map.GetLength(1); col++)
-            {
-                if(map[row, col] == 1)
-                {
-                    Vector2 _slimeWallPosition = new(col * _slimeWall.Height, row * _slimeWall.Width);
-                    _slimeWall.Draw(Core.SpriteBatch, _slimeWallPosition);
-                }
-            }
-        }
+        _background_RECEPCAO.Draw(Core.SpriteBatch, Vector2.Zero);
+
+        _raposo.Draw(Core.SpriteBatch, new Vector2(_raposoX - _raposo.Width * -1.5f, GROUND_Y - _raposo.Height));
+        _player.Draw(Core.SpriteBatch, new Vector2(_playerX - _player.Width * 0.5f, GROUND_Y - _player.Height));
 
         Core.SpriteBatch.End();
 
         Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+
+        GameSession.Inventory.Draw(Core.SpriteBatch, new Vector2(60, 60));
 
         if (_isAtExit)
         {
@@ -254,7 +217,7 @@ public class Scene_caldeirao : Scene
                 _font,
                 PRESS_E_INTERECT,
                 _pressEInterectPos,
-                Color.Black,
+                Color.White,
                 0.0f,
                 _font.MeasureString(PRESS_E_INTERECT) * 0.5f,
                 1.0f,
