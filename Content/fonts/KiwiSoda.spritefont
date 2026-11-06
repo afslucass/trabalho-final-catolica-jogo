@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<XnaContent xmlns:Graphics="Microsoft.Xna.Framework.Content.Pipeline.Graphics">
+  <Asset Type="Graphics:FontDescription">
+
+    <!-- Tem que ser igual ao nome do arquivo .ttf, sem a extensão (KiwiSoda.ttf). -->
+    <FontName>KiwiSoda</FontName>
+
+    <!-- Tamanho em pontos. Comece com 36 e ajuste olhando o jogo. -->
+    <Size>36</Size>
+
+    <Spacing>0</Spacing>
+    <UseKerning>true</UseKerning>
+    <Style>Regular</Style>
+
+    <!-- Caractere usado no lugar de qualquer um que a fonte não tenha (evita crash). -->
+    <DefaultCharacter>?</DefaultCharacter>
+
+    <CharacterRegions>
+      <!-- ASCII (letras, números e pontuação básica) -->
+      <CharacterRegion>
+        <Start>&#32;</Start>
+        <End>&#126;</End>
+      </CharacterRegion>
+      <!-- Acentos e ç (á à â ã ç é ê í ó ô õ ú e maiúsculas) -->
+      <CharacterRegion>
+        <Start>&#160;</Start>
+        <End>&#255;</End>
+      </CharacterRegion>
+      <!-- Travessões -->
+      <CharacterRegion>
+        <Start>&#8211;</Start>
+        <End>&#8212;</End>
+      </CharacterRegion>
+      <!-- Aspas e apóstrofos curvos -->
+      <CharacterRegion>
+        <Start>&#8216;</Start>
+        <End>&#8221;</End>
+      </CharacterRegion>
+      <!-- Reticências -->
+      <CharacterRegion>
+        <Start>&#8230;</Start>
+        <End>&#8230;</End>
+      </CharacterRegion>
+    </CharacterRegions>
+
+  </Asset>
+</XnaContent>
