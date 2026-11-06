@@ -136,7 +136,7 @@ public class Core : Game
         Audio = new AudioController();
 
         // Create the pause menu. It uses the same font as the scenes.
-        Pause = new PauseMenu(Content.Load<SpriteFont>("fonts/04B_30"));
+        Pause = new PauseMenu(Content.Load<SpriteFont>("fonts/KiwiSoda"));
         Pause.OnResume = () => SetPaused(false);
         Pause.OnQuit = () => Exit();
     }

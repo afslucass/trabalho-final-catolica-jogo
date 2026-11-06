@@ -75,9 +75,9 @@ public class Scene_recepcao : Scene
     // ---------- Exits ----------
     // The two background arches: the left one leads to the Haunted Train,
     // and the right one leads to the Boiler. Positions are ratios of background width.
-    private const float LEFT_EXIT_RATIO = 0.215f;
-    private const float RIGHT_EXIT_RATIO = 0.785f;
-    private const float EXIT_RANGE = 220f;
+    private const float LEFT_EXIT_RATIO = 0.100f;
+    private const float RIGHT_EXIT_RATIO = 0.985f;
+    private const float EXIT_RANGE = 320f;
 
     private float _leftExitX;
     private float _rightExitX;
@@ -185,7 +185,7 @@ public class Scene_recepcao : Scene
         _rightExitX = _background.Width * RIGHT_EXIT_RATIO;
 
         _collectSoundEffect = Content.Load<SoundEffect>("audio/collect");
-        _font = Content.Load<SpriteFont>("fonts/04B_30");
+        _font = Content.Load<SpriteFont>("fonts/KiwiSoda");
 
         // Fallback: unsupported font characters are replaced with '?'
         // (or a space) to prevent ArgumentException in MeasureString/DrawString.
@@ -208,42 +208,42 @@ public class Scene_recepcao : Scene
         {
             caption = Wrap("AUTO LÁ! O que é isso que vejo? Um novo aperitivo? A grande Morte nunca falha... Bem-vindo! Bem-vindo! Bem-vindo ao meio termo! O Limbo abriga aqueles que estão de passagem."),
             hasCaptionFadeIn = true,
-            durationInMillis = 12000,
+            durationInMillis = 1200,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Sou o grandioso VIGIA, tudo vejo, tudo sei. Eu te conheço de muito antes Alma, desdo seu nascimento, até o seu último suspiro..."),
             hasCaptionFadeIn = true,
-            durationInMillis = 10000,
+            durationInMillis = 1000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("De certa forma, somos íntimos, mas não se deixe levar, não somos camaradas."),
             hasCaptionFadeIn = true,
-            durationInMillis = 6500,
+            durationInMillis = 650,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Seu corpo fraco te abandonou, você está aqui para seguir para a próxima fase do seu ciclo, assim como todos os outros antes, e como todos os próximos..."),
             hasCaptionFadeIn = true,
-            durationInMillis = 11000,
+            durationInMillis = 1100,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Alma, seu destino te aguarda a direita desse vagão, não se surpreenda pelo o que está por vir, não irá durar por muito... Só precisamos ter certeza..."),
             hasCaptionFadeIn = true,
-            durationInMillis = 11000,
+            durationInMillis = 1100,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("VÁ CRIATURA, me deixe às minhas novelas, os mortos não me entretém tanto quanto os vivos."),
             hasCaptionFadeIn = true,
-            durationInMillis = 7500,
+            durationInMillis = 750,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
 
@@ -257,7 +257,7 @@ public class Scene_recepcao : Scene
         {
             caption = Wrap("Siga pela direita, Alma. A Caldeira te aguarda."),
             hasCaptionFadeIn = true,
-            durationInMillis = 4000,
+            durationInMillis = 400,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
 
@@ -270,21 +270,21 @@ public class Scene_recepcao : Scene
         {
             caption = Wrap("Texto do Vigia depois da Justiça 1"),
             hasCaptionFadeIn = true,
-            durationInMillis = 4000,
+            durationInMillis = 400,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         secondSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Texto do Vigia depois da Justiça 2"),
             hasCaptionFadeIn = true,
-            durationInMillis = 4000,
+            durationInMillis = 400,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         secondSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Texto do Vigia depois da Justiça 3"),
             hasCaptionFadeIn = true,
-            durationInMillis = 4000,
+            durationInMillis = 400,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
 
@@ -298,7 +298,7 @@ public class Scene_recepcao : Scene
         {
             caption = Wrap("Não tenho mais nada a dizer, Alma. Siga o seu caminho."),
             hasCaptionFadeIn = true,
-            durationInMillis = 4000,
+            durationInMillis = 400,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
 
