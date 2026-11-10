@@ -20,12 +20,33 @@
 /processorParam:Version=3.8.5.1
 /build:audio/bounce.wav
 
+#begin audio/caldeira.ogg
+/importer:OggImporter
+/processor:SongProcessor
+/processorParam:Quality=Best
+/processorParam:Version=3.8.5.1
+/build:audio/caldeira.ogg
+
 #begin audio/collect.wav
 /importer:WavImporter
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
 /processorParam:Version=3.8.5.1
 /build:audio/collect.wav
+
+#begin audio/intro_ambience.ogg
+/importer:OggImporter
+/processor:SongProcessor
+/processorParam:Quality=Best
+/processorParam:Version=3.8.5.1
+/build:audio/intro_ambience.ogg
+
+#begin audio/recepcao_ambience.ogg
+/importer:OggImporter
+/processor:SongProcessor
+/processorParam:Quality=Best
+/processorParam:Version=3.8.5.1
+/build:audio/recepcao_ambience.ogg
 
 #begin audio/theme.ogg
 /importer:OggImporter
