@@ -9,6 +9,7 @@ using GameCore.CustomMouseCursor;
 using GameCore.DialogCutscene;
 using GameCore.Graphics;
 using GameCore.Scenes;
+using GameCore.Save;
 
 namespace TestGame.Scenes;
 
@@ -22,13 +23,15 @@ public enum RecepcaoSpawn
     FromAssombrado   // Returning from the Haunted Train (spawns near the left arch)
 }
 
-public class Scene_recepcao : Scene
+public class Scene_recepcao : Scene, ISaveableScene
 {
     // ---------- World ----------
     // Uses the background's native resolution (3840 x 1080). The camera applies a
     // scale so the background height matches the window height, allowing the game
     // to support any resolution. Background areas outside the window width
     // remain off-screen and are revealed as the camera scrolls.
+    public string SaveId => "recepcao";
+    public Vector2 SavePlayerPosition => new Vector2(_playerX, GROUND_Y);
     private Sprite _background;
     private float _cameraX;
 
@@ -119,10 +122,12 @@ public class Scene_recepcao : Scene
     private SoundEffect _collectSoundEffect;
 
     private readonly RecepcaoSpawn _spawn;
+    private readonly float? _startX;
 
-    public Scene_recepcao(RecepcaoSpawn spawn = RecepcaoSpawn.Start)
+    public Scene_recepcao(RecepcaoSpawn spawn = RecepcaoSpawn.Start, float? startX = null)
     {
         _spawn = spawn;
+        _startX = startX;
     }
 
     public override void Initialize()
@@ -135,7 +140,7 @@ public class Scene_recepcao : Scene
         switch (_spawn)
         {
             case RecepcaoSpawn.FromCaldeira:
-                _playerX = _rightExitX - 300f;
+                _playerX = _rightExitX - 100f;
                 _player = _playerLeft;
                 break;
 
@@ -148,6 +153,10 @@ public class Scene_recepcao : Scene
                 _playerX = worldWidth * 0.30f;
                 _player = _playerRight;
                 break;
+        }
+        if (_startX.HasValue)
+        {
+            _playerX = MathHelper.Clamp(_startX.Value, WORLD_MARGIN, worldWidth - WORLD_MARGIN);
         }
 
         // Places the camera immediately, without an initial slide.

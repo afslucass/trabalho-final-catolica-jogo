@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace GameCore.Inventory;
+
 public class InventoryController
 {
     // Atlas file containing the inventory item icons.
@@ -23,6 +24,9 @@ public class InventoryController
     private readonly Dictionary<string, string> _items = new();
 
     // Caches created sprites to avoid recreating them every frame.
+
+    public IReadOnlyDictionary<string, string> Items => _items;
+
     private readonly Dictionary<string, Sprite> _icons = new();
 
     /// <summary>Gets the number of collected items.</summary>
@@ -69,5 +73,10 @@ public class InventoryController
             icon.Draw(spriteBatch, iconPosition);
             iconPosition.X += RENDER_GAP + icon.Width;
         }
+    }
+    public void Clear()
+    {
+        _items.Clear();
+        _icons.Clear();
     }
 }

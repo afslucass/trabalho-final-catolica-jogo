@@ -8,8 +8,8 @@ namespace TestGame.Scenes;
 
 public class TitleScene : Scene
     {
-    private const string DUNGEON_TEXT = "Dungeon";
-    private const string SLIME_TEXT = "Slime";
+    private const string DUNGEON_TEXT = "Jogo";
+    private const string SLIME_TEXT = "Do Trem";
     private const string PRESS_ENTER_TEXT = "Press Enter To Start";
 
     // The font to use to render normal text.
@@ -66,7 +66,7 @@ public class TitleScene : Scene
     public override void LoadContent()
     {
         // Load the font for the standard text.
-        _font = Core.Content.Load<SpriteFont>("fonts/04B_30");
+        _font = Core.Content.Load<SpriteFont>("fonts/KiwiSoda");
 
         // Load the font for the title text.
         _font5x = Content.Load<SpriteFont>("fonts/04B_30_5x");
@@ -83,7 +83,7 @@ public class TitleScene : Scene
 
     public override void Draw(GameTime gameTime)
     {
-        Core.GraphicsDevice.Clear(new Color(32, 40, 78, 255));
+        Core.GraphicsDevice.Clear(new Color(0, 0, 0, 0));
 
         // Begin the sprite batch to prepare for rendering.
         Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);

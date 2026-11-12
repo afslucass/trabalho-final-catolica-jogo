@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Input;
 using GameCore.Input;
 using GameCore.Audio;
 using GameCore.Scenes;
+using GameCore.Save;
 
 
 namespace GameCore;
@@ -71,6 +72,18 @@ public class Core : Game
     /// Gets a reference to the audio control system.
     /// </summary>
     public static AudioController Audio { get; private set; }
+
+    public static bool CanSave => s_activeScene is ISaveableScene;
+
+    public static bool SaveGame()
+    {
+        if (s_activeScene is not ISaveableScene scene)
+        {
+            return false;
+        }
+
+        return SaveManager.Save(GameSession.CreateSaveData(scene.SaveId, scene.SavePlayerPosition));
+    }
 
     /// <summary>
     /// Creates a new Core instance.
@@ -138,6 +151,7 @@ public class Core : Game
         // Create the pause menu. It uses the same font as the scenes.
         Pause = new PauseMenu(Content.Load<SpriteFont>("fonts/KiwiSoda"));
         Pause.OnResume = () => SetPaused(false);
+        Pause.OnSave = SaveGame;
         Pause.OnQuit = () => Exit();
     }
 

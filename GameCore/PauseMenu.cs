@@ -29,6 +29,10 @@ public class PauseMenu
     /// </summary>
     public Action OnReturnToTitle { get; set; }
 
+    public Func<bool> OnSave { get; set; }
+    private string _message = "";
+    private DateTime _messageUntil = DateTime.MinValue;
+
     public PauseMenu(SpriteFont font)
     {
         _font = font;
@@ -51,13 +55,24 @@ public class PauseMenu
             ("Som: ligar/desligar", () => Core.Audio.ToggleMute()),
         };
 
+        if (OnSave != null && Core.CanSave)
+        {
+            _options.Insert(1, ("Salvar jogo", () =>
+            {
+                _message = OnSave() ? "Jogo salvo!" : "Nao foi possivel salvar";
+                _messageUntil = DateTime.UtcNow.AddSeconds(2);
+            }
+            ));
+        }
+
         if (OnReturnToTitle != null)
         {
             _options.Add(("Voltar ao titulo", () =>
             {
                 OnResume?.Invoke();
                 OnReturnToTitle?.Invoke();
-            }));
+            }
+            ));
         }
 
         _options.Add(("Sair do jogo", () => OnQuit?.Invoke()));
@@ -125,5 +140,11 @@ public class PauseMenu
 
             y += spacing;
         }
+                    
+             if (DateTime.UtcNow < _messageUntil)
+            {
+                Vector2 size = _font.MeasureString(_message);
+                spriteBatch.DrawString(_font, _message, new Vector2((width - size.X) * 0.5f, y + 20), Color.LightGreen);
+            }
     }
 }
