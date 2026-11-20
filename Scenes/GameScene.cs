@@ -92,6 +92,7 @@ public class GameScene : Scene
     private Vector2 _pressEInterectPos;
     private bool _isAtExitRecepcao;
     private bool _isAtExitCaldeirao;
+    private bool _isAtExitAssombrado;
 
     private InventoryController _inventory;
     private Scene_recepcao _activeScene;
@@ -460,6 +461,12 @@ public class GameScene : Scene
             Core.ChangeScene(new Scene_caldeirao());
             return;
         }
+        _isAtExitAssombrado = slimeBounds.Intersects(exitBounds_1);
+        if (_isAtExitAssombrado && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
+        {
+            Core.ChangeScene(new Scene_assombrado());
+            return;
+        }
         if (Core.Input.Mouse.WasButtonJustPressed(MouseButton.Left))
         {
             Circle _mouseBounds = new Circle(
@@ -609,7 +616,7 @@ public class GameScene : Scene
             SpriteEffects.None, // effects
             0.0f                // layerDepth
         );
-        if (_isAtExitCaldeirao || _isAtExitRecepcao)
+        if (_isAtExitCaldeirao || _isAtExitRecepcao || _isAtExitAssombrado)
         {
             Core.SpriteBatch.DrawString(
                 _font,
