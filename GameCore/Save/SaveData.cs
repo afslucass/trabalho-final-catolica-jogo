@@ -24,6 +24,13 @@ public class SaveData
     // ("FalouComVigia"), então reordenar o enum não corrompe saves antigos.
     public StoryStage Stage { get; set; } = StoryStage.Intro;
 
+    // Quantas vezes o jogador voltou ao vagão assombrado sem a máscara
+    // (define a velocidade do Raposo). Saves antigos sem o campo leem 0.
+    public int HauntedRetries { get; set; }
+
+    // true depois que o jogador falou com o Estranho (o puzzle do disfarce começou).
+    public bool HauntedPuzzleStarted { get; set; }
+
     // Itens do inventário: id do item -> nome da região do ícone no atlas.
     public Dictionary<string, string> Items { get; set; } = new();
 }

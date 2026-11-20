@@ -59,6 +59,15 @@ public class Scene_caldeirao : Scene
     private bool _isAtExit;
     private float _recepcaoExitX;
 
+    // Item 3 do disfarce (cabelo). Só pode ser coletado depois de iniciar o puzzle
+    // (falar com o Estranho no vagão assombrado).
+    private const float HAIR_X_RATIO = 0.55f;
+    private const float ITEM_RANGE = 150f;
+    private const string PRESS_E_COLLECT_ITEM = "Press E para pegar o item";
+    private Sprite _hairSprite;
+    private float _hairX;
+    private bool _isNearHair;
+
     public override void Initialize()
     {
         base.Initialize();
@@ -97,6 +106,10 @@ public class Scene_caldeirao : Scene
 
         _recepcaoExitX = _background_RECEPCAO.Width * EXIT_RATIO;
 
+        _hairSprite = charactersAtlas.CreateSprite(GameItems.HairIcon);
+        _hairSprite.Scale = Vector2.One;
+        _hairX = _background_RECEPCAO.Width * HAIR_X_RATIO;
+
         // Load the font
         _font = Content.Load<SpriteFont>("fonts/KiwiSoda");
         _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
@@ -118,10 +131,24 @@ public class Scene_caldeirao : Scene
 
         // Check for collision between the slime and the exit point to trigger a scene change.
         _isAtExit = MathF.Abs(_playerX - _recepcaoExitX) < EXIT_RANGE_RECEPCAO;
-        if (_isAtExit && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
+
+        // O item 3 só pode ser coletado depois de iniciar o puzzle.
+        _isNearHair = GameSession.HauntedPuzzleStarted &&
+                      !GameSession.Inventory.Has(GameItems.HairId) &&
+                      MathF.Abs(_playerX - _hairX) < ITEM_RANGE;
+
+        if (Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
         {
-            Core.ChangeScene(new Scene_recepcao());
-            return;
+            if (_isNearHair)
+            {
+                GameSession.Inventory.CollectItem(GameItems.HairId, GameItems.HairIcon);
+            }
+            else if (_isAtExit)
+            {
+                // Volta pela porta da direita da recepção (a Caldeira fica à direita dela).
+                Core.ChangeScene(new Scene_recepcao(RecepcaoSpawn.FromCaldeira));
+                return;
+            }
         }
     }
 
@@ -202,6 +229,12 @@ public class Scene_caldeirao : Scene
 
         _background_RECEPCAO.Draw(Core.SpriteBatch, Vector2.Zero);
 
+        if (GameSession.HauntedPuzzleStarted && !GameSession.Inventory.Has(GameItems.HairId))
+        {
+            _hairSprite.Draw(Core.SpriteBatch,
+                new Vector2(_hairX - _hairSprite.Width * 0.5f, GROUND_Y - _hairSprite.Height));
+        }
+
         _raposo.Draw(Core.SpriteBatch, new Vector2(_raposoX - _raposo.Width * -1.5f, GROUND_Y - _raposo.Height));
         _player.Draw(Core.SpriteBatch, new Vector2(_playerX - _player.Width * 0.5f, GROUND_Y - _player.Height));
 
@@ -211,7 +244,21 @@ public class Scene_caldeirao : Scene
 
         GameSession.Inventory.Draw(Core.SpriteBatch, new Vector2(60, 60));
 
-        if (_isAtExit)
+        if (_isNearHair)
+        {
+            Core.SpriteBatch.DrawString(
+                _font,
+                PRESS_E_COLLECT_ITEM,
+                _pressEInterectPos,
+                Color.White,
+                0.0f,
+                _font.MeasureString(PRESS_E_COLLECT_ITEM) * 0.5f,
+                1.0f,
+                SpriteEffects.None,
+                0.0f
+            );
+        }
+        else if (_isAtExit)
         {
             Core.SpriteBatch.DrawString(
                 _font,

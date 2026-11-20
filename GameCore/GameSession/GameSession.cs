@@ -39,6 +39,15 @@ public static class GameItems
     // confirmar qual dos dois desenhos de cabelo é.
     public const string HairId = "cabelo";
     public const string HairIcon = "item-hair-1";
+
+    /// <summary>
+    /// O disfarce são 3 itens: 1 = máscara (vagão assombrado), 2 = colar (recepção)
+    /// e 3 = cabelo (Caldeira). Com os três o Estranho deixa o jogador passar.
+    /// </summary>
+    public static bool HasFullDisguise =>
+        GameSession.Inventory.Has(MaskId) &&
+        GameSession.Inventory.Has(NecklaceId) &&
+        GameSession.Inventory.Has(HairId);
 }
 
 /// <summary>
@@ -57,6 +66,58 @@ public static class GameSession
     // Em que ponto da história o jogador está (libera portas e muda os diálogos).
     public static StoryStage Stage { get; set; } = StoryStage.Intro;
 
+    // Quantas vezes o jogador tentou sair do vagão assombrado sem a máscara
+    // (cabeça da boneca). Cada vez aumenta a velocidade do Raposo na sala.
+    public static int HauntedRetries { get; set; } = 0;
+
+    // true depois que o jogador falou com o Estranho. Só então os itens do disfarce
+    // podem ser coletados.
+    public static bool HauntedPuzzleStarted { get; set; } = false;
+
+    // Primeiro checkpoint: o momento em que o Vigia coloca Alma no vagão assombrado.
+    // O game over volta para ele.
+    public static SaveData Checkpoint { get; private set; }
+
+    /// <summary>
+    /// Grava o checkpoint (na memória e no arquivo de save). O puzzle volta ao zero
+    /// nele: sem conversa com o Estranho, sem voltas e sem itens novos.
+    /// </summary>
+    public static void SaveCheckpoint(float playerX)
+    {
+        if (Stage < StoryStage.VagaoAssombrado)
+            Stage = StoryStage.VagaoAssombrado;
+
+        SaveData data = CreateSaveData("recepcao", new Vector2(playerX, 0f));
+        data.HauntedRetries = 0;
+        data.HauntedPuzzleStarted = false;
+
+        Checkpoint = data;
+        SaveManager.Save(data);
+    }
+
+    /// <summary>Cria o checkpoint só se ainda não existir um.</summary>
+    public static void EnsureCheckpoint(float playerX)
+    {
+        if (Checkpoint == null)
+            SaveCheckpoint(playerX);
+    }
+
+    /// <summary>Volta o estado do jogo para o checkpoint (usado no game over).</summary>
+    public static void RestoreCheckpoint()
+    {
+        if (Checkpoint != null)
+        {
+            LoadFrom(Checkpoint);
+            return;
+        }
+
+        // Sem checkpoint gravado: volta ao ponto em que o vagão assombrado é liberado.
+        Inventory.Clear();
+        Stage = StoryStage.VagaoAssombrado;
+        HauntedRetries = 0;
+        HauntedPuzzleStarted = false;
+    }
+
     /// <summary>
     /// Zera tudo para começar um novo jogo. Chame ao escolher "Novo jogo",
     /// porque estes dados são estáticos e sobrevivem a uma volta ao título.
@@ -66,6 +127,9 @@ public static class GameSession
         Score = 0;
         Inventory = new InventoryController();
         Stage = StoryStage.Intro;
+        HauntedRetries = 0;
+        HauntedPuzzleStarted = false;
+        Checkpoint = null;
     }
     public static SaveData CreateSaveData(string sceneId, Vector2 playerPosition)
     {
@@ -75,7 +139,9 @@ public static class GameSession
             PlayerX = playerPosition.X,
             PlayerY = playerPosition.Y,
             Score = Score,
-            Stage = Stage
+            Stage = Stage,
+            HauntedRetries = HauntedRetries,
+            HauntedPuzzleStarted = HauntedPuzzleStarted
         };
 
         foreach (var item in Inventory.Items)
@@ -89,6 +155,8 @@ public static class GameSession
     {
         Score = data.Score;
         Stage = data.Stage;
+        HauntedRetries = data.HauntedRetries;
+        HauntedPuzzleStarted = data.HauntedPuzzleStarted;
 
         // Mantém a mesma instância do inventário (cenas podem estar guardando a referência).
         Inventory.Clear();

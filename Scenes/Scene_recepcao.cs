@@ -121,6 +121,25 @@ public class Scene_recepcao : Scene, ISaveableScene
     private SpriteFont _font;
     private SoundEffect _collectSoundEffect;
 
+    // ---------- Puzzle do Estranho ----------
+    // Item 2 do disfarce (colar), no lado direito da recepção. Só pode ser coletado
+    // depois de iniciar o puzzle (falar com o Estranho no vagão assombrado).
+    private const float NECKLACE_X_RATIO = 0.72f;
+    private const float ITEM_RANGE = 150f;
+    private const string PRESS_E_COLLECT_ITEM = "Press E para pegar o item";
+    private Sprite _necklaceSprite;
+    private float _necklaceX;
+    private bool _isNearNecklace;
+
+    // Cenário 1: o jogador tentou passar sem o item necessário. O Vigia o reconhece e o
+    // leva de volta ao vagão assombrado (a fala do Vigia ainda não existe).
+    private const float VIGIA_BLOCK_RANGE = 500f;  // Sem o item 1, não passa daqui em direção ao Vigia.
+    private const double CAUGHT_MS = 2200;
+    private const string CAUGHT_TEXT = "O Vigia te reconheceu! De volta ao vagão assombrado...";
+    private bool _caught;
+    private double _caughtRemainingMs;
+    private Texture2D _pixel;
+
     private readonly RecepcaoSpawn _spawn;
     private readonly float? _startX;
 
@@ -193,6 +212,13 @@ public class Scene_recepcao : Scene, ISaveableScene
         _leftExitX = _background.Width * LEFT_EXIT_RATIO;
         _rightExitX = _background.Width * RIGHT_EXIT_RATIO;
 
+        _necklaceSprite = charactersAtlas.CreateSprite(GameItems.NecklaceIcon);
+        _necklaceSprite.Scale = Vector2.One;
+        _necklaceX = _background.Width * NECKLACE_X_RATIO;
+
+        _pixel = new Texture2D(Core.GraphicsDevice, 1, 1);
+        _pixel.SetData(new[] { Color.White });
+
         _collectSoundEffect = Content.Load<SoundEffect>("audio/collect");
         _font = Content.Load<SpriteFont>("fonts/KiwiSoda");
 
@@ -204,6 +230,21 @@ public class Scene_recepcao : Scene, ISaveableScene
         cursorAtlas.SetCursor("cheese");
 
         BuildDialogs();
+    }
+
+    public override void UnloadContent()
+    {
+        _pixel?.Dispose();
+        base.UnloadContent();
+    }
+
+    // Scenario 1: the player was caught trying to go on without the needed item.
+    // Each return to the haunted car makes the Estranho faster.
+    private void StartCaught()
+    {
+        GameSession.HauntedRetries++;
+        _caught = true;
+        _caughtRemainingMs = CAUGHT_MS;
     }
 
     // Builds the Watcher's dialogs. Characters remain still during conversations,
@@ -298,7 +339,12 @@ public class Scene_recepcao : Scene, ISaveableScene
         });
 
         // When finished, the Watcher guides Alma to the Haunted Train and unlocks the left exit.
-        _secondTalk = CreateTalk(secondSteps, () => GameSession.Stage = StoryStage.VagaoAssombrado);
+        _secondTalk = CreateTalk(secondSteps, () =>
+        {
+            GameSession.Stage = StoryStage.VagaoAssombrado;
+            // Primeiro checkpoint do jogo: o Vigia coloca Alma no vagão assombrado.
+            GameSession.SaveCheckpoint(_playerX);
+        });
 
         // ----- Other stages (replace placeholder text) -----
         List<DialogCutsceneSteps> idleSteps = new();
@@ -404,9 +450,31 @@ public class Scene_recepcao : Scene, ISaveableScene
 #if DEBUG
         CheckDebugKeys();
 #endif
+        // Cenário 1: o Vigia leva o jogador de volta ao vagão assombrado.
+        if (_caught)
+        {
+            UpdateCamera(dt, snap: false);
+            _caughtRemainingMs -= gameTime.ElapsedGameTime.TotalMilliseconds;
+            if (_caughtRemainingMs <= 0)
+            {
+                Core.ChangeScene(new Scene_assombrado(isRetryChase: true));
+            }
+            return;
+        }
+
         if (_activeTalk == null)
         {
             MovePlayer(dt);
+        }
+
+        // Com o puzzle iniciado, sem o item 1 (máscara) o jogador não passa pela recepção:
+        // ao se aproximar do Vigia ele é reconhecido e levado de volta.
+        if (GameSession.HauntedPuzzleStarted &&
+            !GameSession.Inventory.Has(GameItems.MaskId) &&
+            _playerX > _vigiaX - VIGIA_BLOCK_RANGE)
+        {
+            StartCaught();
+            return;
         }
 
         UpdateCamera(dt, snap: false);
@@ -433,6 +501,11 @@ public class Scene_recepcao : Scene, ISaveableScene
         _isAtLeftExit = MathF.Abs(_playerX - _leftExitX) < EXIT_RANGE;
         _isAtRightExit = MathF.Abs(_playerX - _rightExitX) < EXIT_RANGE;
 
+        // O item 2 só pode ser coletado depois de iniciar o puzzle.
+        _isNearNecklace = GameSession.HauntedPuzzleStarted &&
+                          !GameSession.Inventory.Has(GameItems.NecklaceId) &&
+                          MathF.Abs(_playerX - _necklaceX) < ITEM_RANGE;
+
         // The right arch (Boiler) unlocks after speaking to the Watcher; the
         // left arch (Haunted Train) unlocks after the Watcher guides Alma there.
         _rightExitOpen = GameSession.Stage >= StoryStage.FalouComVigia;
@@ -444,14 +517,25 @@ public class Scene_recepcao : Scene, ISaveableScene
             {
                 StartTalk(ChooseTalk());
             }
+            else if (_isNearNecklace)
+            {
+                GameSession.Inventory.CollectItem(GameItems.NecklaceId, GameItems.NecklaceIcon);
+                Core.Audio.PlaySoundEffect(_collectSoundEffect);
+            }
             else if (_isAtLeftExit && _leftExitOpen)
             {
-                // TODO: Replace with the Haunted Train scene when it is available.
-                Core.ChangeScene(new GameScene());
+                Core.ChangeScene(new Scene_assombrado());
                 return;
             }
             else if (_isAtRightExit && _rightExitOpen)
             {
+                // Cenário 1: para acessar a Caldeira é necessário o item 2.
+                if (GameSession.HauntedPuzzleStarted && !GameSession.Inventory.Has(GameItems.NecklaceId))
+                {
+                    StartCaught();
+                    return;
+                }
+
                 Core.ChangeScene(new Scene_caldeirao());
                 return;
             }
@@ -576,6 +660,13 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         _background.Draw(Core.SpriteBatch, Vector2.Zero);
 
+        // Item 2 do disfarce (aparece depois de iniciar o puzzle, até ser coletado).
+        if (GameSession.HauntedPuzzleStarted && !GameSession.Inventory.Has(GameItems.NecklaceId))
+        {
+            _necklaceSprite.Draw(Core.SpriteBatch,
+                new Vector2(_necklaceX - _necklaceSprite.Width * 0.5f, GROUND_Y - _necklaceSprite.Height));
+        }
+
         // Sprites are drawn from the top-left corner, keeping their feet aligned at GROUND_Y.
         _vigia.Draw(Core.SpriteBatch, new Vector2(_vigiaX - _vigia.Width * 0.5f, GROUND_Y - _vigia.Height));
         _player.Draw(Core.SpriteBatch, new Vector2(_playerX - _player.Width * 0.5f, GROUND_Y - _player.Height));
@@ -596,6 +687,10 @@ public class Scene_recepcao : Scene, ISaveableScene
             if (_canTalk)
             {
                 prompt = PRESS_E_TALK;
+            }
+            else if (_isNearNecklace)
+            {
+                prompt = PRESS_E_COLLECT_ITEM;
             }
             else if (_isAtLeftExit)
             {
@@ -620,6 +715,21 @@ public class Scene_recepcao : Scene, ISaveableScene
         }
 
         Core.SpriteBatch.End();
+
+        // Cenário 1: escurece a tela e mostra a mensagem enquanto o Vigia leva o jogador de volta.
+        if (_caught)
+        {
+            int w = Core.GraphicsDevice.PresentationParameters.BackBufferWidth;
+            int h = Core.GraphicsDevice.PresentationParameters.BackBufferHeight;
+            float elapsed = (float)((CAUGHT_MS - _caughtRemainingMs) / CAUGHT_MS);
+            float alpha = MathHelper.Clamp(elapsed * 3f, 0f, 1f) * 0.7f;
+            Vector2 textSize = _font.MeasureString(CAUGHT_TEXT);
+
+            Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+            Core.SpriteBatch.Draw(_pixel, new Rectangle(0, 0, w, h), Color.Black * alpha);
+            Core.SpriteBatch.DrawString(_font, CAUGHT_TEXT, new Vector2((w - textSize.X) * 0.5f, (h - textSize.Y) * 0.5f), Color.White);
+            Core.SpriteBatch.End();
+        }
 
         // Draws dialogs above all other layers; each controller renders only while active.
         Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);

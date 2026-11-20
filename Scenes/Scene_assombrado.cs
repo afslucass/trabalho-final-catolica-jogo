@@ -16,6 +16,19 @@ using GameCore.DialogCutscene;
 
 namespace TestGame.Scenes;
 
+/// <summary>
+/// Vagão assombrado (puzzle do Estranho / Raposo), conforme o storyboard:
+///  1. O jogador entra pela direita e precisa falar com o Estranho para iniciar o puzzle.
+///     Antes disso nenhum item pode ser coletado.
+///  2. Ao fim da conversa o Estranho persegue o jogador, com metade da velocidade dele.
+///  3. Item 1 (máscara da boneca) fica aqui, o item 2 na recepção e o item 3 na Caldeira.
+///  4. Cenário 1: o jogador tenta passar por uma sala sem o item necessário. O Vigia o leva
+///     de volta para cá (a recepção faz isso). Ele nasce no lado esquerdo, junto do Estranho,
+///     e a velocidade do Estranho aumenta a cada volta.
+///  5. Cenário 2: o Estranho alcança o jogador -> game over, que volta ao primeiro checkpoint
+///     (o momento em que o Vigia colocou Alma no vagão).
+///  6. Com o disfarce completo (3 itens) o Estranho deixa o jogador passar para o último vagão.
+/// </summary>
 public class Scene_assombrado : Scene
 {
     private Sprite _background_RECEPCAO;
@@ -42,14 +55,46 @@ public class Scene_assombrado : Scene
     private const float DOLL_INTERACTION_RANGE = 170f;
     private bool _maskCollected;
 
-    // ---------- Raposo ----------
+    // ---------- Estranho (Raposo) ----------
     private AnimatedSprite _raposo;
     private float _raposoX;
     private const string RAPOSO_ANIMATION = "hooded-animation";
     private const float TALK_RANGE = 330f;
-    private const float RAPOSO_CHASE_SPEED = 270f; // Mais lento que o jogador (450 px/s).
-    private bool _hasTalkedToRaposo;
+
+    // Velocidade da perseguição: no começo é a metade da velocidade do jogador.
+    // A cada volta ao vagão sem o item necessário (cenário 1) ganha RAPOSO_SPEED_PER_RETRY,
+    // até o limite RAPOSO_MAX_SPEED (abaixo do sprint do jogador, 720 px/s, para sempre
+    // ser possível fugir).
+    private const float RAPOSO_BASE_SPEED = PLAYER_SPEED * 0.5f; // 225 px/s
+    private const float RAPOSO_SPEED_PER_RETRY = 90f;
+    private const float RAPOSO_MAX_SPEED = 650f;
+    private const float CATCH_DISTANCE = 100f; // Distância em que o Estranho pega o jogador.
+
+    private float RaposoSpeed => MathF.Min(
+        RAPOSO_BASE_SPEED + GameSession.HauntedRetries * RAPOSO_SPEED_PER_RETRY,
+        RAPOSO_MAX_SPEED);
+
+    // Tempo de espera entre o fim da conversa (ou o nascimento na sala) e o Estranho
+    // realmente andar/pegar, para o jogador perceber que a perseguição começou.
+    private const double CHASE_START_DELAY_MS = 1800;
+    private double _chaseDelayMs;
+
+    private bool _hasTalkedToRaposo; // O puzzle já foi iniciado (a conversa já aconteceu).
     private bool _raposoChasing;
+    private bool _hasFullDisguise;   // Tem os 3 itens: o Estranho não persegue mais.
+    private bool _passUnlocked;      // O Estranho já liberou a passagem para o último vagão.
+
+    // true quando o jogador voltou à sala por ter tentado passar sem o item necessário:
+    // nasce no lado esquerdo, junto do Estranho, e a perseguição começa logo em seguida.
+    private readonly bool _isRetryChase;
+
+    // ---------- Game over ----------
+    private enum SceneState { Playing, GameOver }
+    private SceneState _state = SceneState.Playing;
+    private double _stateRemainingMs;
+    private const double GAME_OVER_MS = 3000;
+    private const string GAME_OVER_TEXT = "GAME OVER";
+    private Texture2D _pixel;
 
     // ---------- Dialogs ----------
     private class Talk
@@ -59,7 +104,8 @@ public class Scene_assombrado : Scene
         public Action OnFinished;
     }
 
-    private Talk _raposoTalk;
+    private Talk _raposoTalk;    // Conversa que inicia o puzzle e a perseguição.
+    private Talk _disguiseTalk;  // Disfarce completo: o Estranho deixa passar.
     private Talk _activeTalk;
     private double _talkRemainingMs;
     private bool _canTalk;
@@ -71,20 +117,63 @@ public class Scene_assombrado : Scene
     private const string PRESS_E_INTERECT = "Press E para ir à Recepção";
     private const string PRESS_E_TALK = "Press E para conversar";
     private const string PRESS_E_COLLECT_MASK = "Press E para coletar a máscara";
+    private const string PRESS_E_NEXT = "Press E para ir ao próximo vagão";
     private Vector2 _pressEInterectPos;
     private const float EXIT_RANGE_RECEPCAO = 150f;
     private const float EXIT_RATIO = 0.900f;
+    private const float EXIT_RANGE_NEXT = 150f; // Porta do último vagão: no lado esquerdo, atrás do Estranho.
     private bool _isAtExit;
+    private bool _isAtNextDoor;
     private bool _isNearMask;
     private float _recepcaoExitX;
+
+    public Scene_assombrado(bool isRetryChase = false)
+    {
+        _isRetryChase = isRetryChase;
+    }
 
     public override void Initialize()
     {
         base.Initialize();
 
-        // Jogador nasce próximo à porta do lado direito.
-        _playerX = _background_RECEPCAO.Width * 0.90f;
-        _player = _playerLeft;
+        _hasTalkedToRaposo = GameSession.HauntedPuzzleStarted;
+        _hasFullDisguise = GameItems.HasFullDisguise;
+        _passUnlocked = GameSession.Stage >= StoryStage.Final;
+
+        if (_hasFullDisguise)
+        {
+            // Disfarce completo: nasce na porta da direita e o Estranho não persegue.
+            _playerX = _recepcaoExitX;
+            _player = _playerLeft;
+        }
+        else if (_isRetryChase)
+        {
+            // Cenário 1: nasce no lado esquerdo, junto do Estranho, e a perseguição começa
+            // logo em seguida (mais rápida a cada volta).
+            _playerX = _raposoX + 250f;
+            _player = _playerRight;
+            _hasTalkedToRaposo = true;
+            _raposoChasing = true;
+            _chaseDelayMs = CHASE_START_DELAY_MS;
+        }
+        else
+        {
+            // Jogador nasce próximo à porta do lado direito.
+            _playerX = _recepcaoExitX;
+            _player = _playerLeft;
+
+            if (_hasTalkedToRaposo)
+            {
+                // Voltou à sala com o puzzle já iniciado: o Estranho persegue de novo.
+                _raposoChasing = true;
+                _chaseDelayMs = CHASE_START_DELAY_MS;
+            }
+            else
+            {
+                // Primeira visita: o checkpoint é o momento em que o Vigia colocou Alma aqui.
+                GameSession.EnsureCheckpoint(_playerX);
+            }
+        }
 
         Vector2 size = _font.MeasureString(PRESS_E_INTERECT);
         _pressEInterectPos = new Vector2(
@@ -105,14 +194,16 @@ public class Scene_assombrado : Scene
         _background_RECEPCAO = charactersAtlas.CreateSprite("bg-sala3");
         _background_RECEPCAO.Scale = Vector2.One;
 
-        // A boneca começa sem a cabeça/máscara. Ao coletar, troca para doll-head.
+        // A boneca começa com a cabeça/máscara. Ao coletar, troca para doll-base.
         _dollBase = charactersAtlas.CreateSprite("doll-base");
         _dollBase.Scale = Vector2.One;
         _dollHead = charactersAtlas.CreateSprite("doll-head");
         _dollHead.Scale = Vector2.One;
-        // A boneca sempre começa com doll-base ao entrar nesta sala.
-        // Ela muda para doll-head somente depois que o jogador coleta a máscara.
-        _maskCollected = false;
+        // Se o jogador já tem a máscara no inventário, a boneca continua sem a cabeça.
+        _maskCollected = GameSession.Inventory.Has(GameItems.MaskId);
+
+        _pixel = new Texture2D(Core.GraphicsDevice, 1, 1);
+        _pixel.SetData(new[] { Color.White });
 
         _playerLeft = charactersAtlas.CreateAnimatedSprite(PLAYER_LEFT_ANIMATION);
         _playerLeft.Scale = Vector2.One;
@@ -123,7 +214,7 @@ public class Scene_assombrado : Scene
         _raposo = charactersAtlas.CreateAnimatedSprite(RAPOSO_ANIMATION);
         _raposo.Scale = Vector2.One;
 
-        // Mantém a posição visual que o Raposo tinha no arquivo original.
+        // Mantém a posição visual que o Raposo tinha no arquivo original (lado esquerdo).
         _raposoX = _raposo.Width;
 
         // A saída para a recepção fica no lado direito da sala.
@@ -135,7 +226,13 @@ public class Scene_assombrado : Scene
         BuildDialogs();
     }
 
-    // Cria a conversa do Raposo. Para alterar as falas, edite os textos abaixo.
+    public override void UnloadContent()
+    {
+        _pixel?.Dispose();
+        base.UnloadContent();
+    }
+
+    // Cria as conversas do Estranho. Para alterar as falas, edite os textos abaixo.
     private void BuildDialogs()
     {
         List<DialogCutsceneSteps> steps = new();
@@ -180,14 +277,51 @@ public class Scene_assombrado : Scene
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
 
-        // Ao terminar a última fala, Raposo começa a perseguir o jogador.
+        // Ao terminar a última fala, o puzzle começa e o Estranho persegue o jogador.
         _raposoTalk = CreateTalk(steps, StartRaposoChase);
+
+        // Disfarce completo: o Estranho se engana e libera a passagem (texto provisório).
+        List<DialogCutsceneSteps> disguiseSteps = new();
+
+        disguiseSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Hmm… Esse rosto… essa roupa… esse cabelo…"),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+
+        disguiseSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Ora, ora… Um dos nossos! Perdoe a minha desconfiança, amigo."),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+
+        disguiseSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Pode passar. A próxima porta está aberta para você."),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+
+        _disguiseTalk = CreateTalk(disguiseSteps, UnlockPassage);
     }
 
     private void StartRaposoChase()
     {
         _hasTalkedToRaposo = true;
+        GameSession.HauntedPuzzleStarted = true; // A partir daqui os itens podem ser coletados.
         _raposoChasing = true;
+        _chaseDelayMs = CHASE_START_DELAY_MS;
+    }
+
+    private void UnlockPassage()
+    {
+        _passUnlocked = true;
+        GameSession.Stage = StoryStage.Final;
     }
 
     private Talk CreateTalk(List<DialogCutsceneSteps> steps, Action onFinished)
@@ -256,23 +390,44 @@ public class Scene_assombrado : Scene
         // Mantém os controles de áudio disponíveis mesmo durante a conversa.
         CheckAudioInput();
 
+        // Game over: congela a cena até o tempo acabar e volta ao checkpoint.
+        if (_state == SceneState.GameOver)
+        {
+            UpdateCamera(dt, snap: false);
+            _stateRemainingMs -= gameTime.ElapsedGameTime.TotalMilliseconds;
+            if (_stateRemainingMs <= 0)
+                FinishGameOver();
+            return;
+        }
+
         // O jogador só fica impedido de andar durante o diálogo.
         if (_activeTalk == null)
             CheckKeyboardInput(dt);
 
-        // Depois da conversa, Raposo persegue o jogador, mas é mais lento.
-        if (_raposoChasing)
+        if (_raposoChasing && _chaseDelayMs > 0)
+        {
+            // Estranho ainda parado: o jogador tem um instante para se afastar.
+            _chaseDelayMs -= gameTime.ElapsedGameTime.TotalMilliseconds;
+        }
+        else if (_raposoChasing)
         {
             float distanceToPlayer = _playerX - _raposoX;
             if (MathF.Abs(distanceToPlayer) > 2f)
-                _raposoX += MathF.Sign(distanceToPlayer) * RAPOSO_CHASE_SPEED * dt;
+                _raposoX += MathF.Sign(distanceToPlayer) * RaposoSpeed * dt;
 
             _raposoX = MathHelper.Clamp(_raposoX, WORLD_MARGIN, _background_RECEPCAO.Width - WORLD_MARGIN);
+
+            // Cenário 2: o Estranho alcançou o jogador -> game over.
+            if (MathF.Abs(_playerX - _raposoX) < CATCH_DISTANCE)
+            {
+                StartGameOver();
+                return;
+            }
         }
 
         UpdateCamera(dt, snap: false);
 
-        // Atualiza o tempo da conversa. Ao terminar, o callback inicia a perseguição.
+        // Atualiza o tempo da conversa. Ao terminar, o callback é executado.
         if (_activeTalk != null)
         {
             _talkRemainingMs -= gameTime.ElapsedGameTime.TotalMilliseconds;
@@ -284,13 +439,18 @@ public class Scene_assombrado : Scene
             }
         }
 
-        _canTalk = !_hasTalkedToRaposo && _activeTalk == null && MathF.Abs(_playerX - _raposoX) < TALK_RANGE;
+        bool nearRaposo = MathF.Abs(_playerX - _raposoX) < TALK_RANGE;
+        bool canStartPuzzle = !_hasTalkedToRaposo && !_hasFullDisguise;
+        bool canShowDisguise = _hasFullDisguise && !_passUnlocked;
+        _canTalk = _activeTalk == null && nearRaposo && (canStartPuzzle || canShowDisguise);
+
         float dollCenterX = DOLL_X + _dollBase.Width * 0.5f;
+        // Itens só podem ser coletados depois de iniciar o puzzle (_raposoChasing).
         _isNearMask = _raposoChasing && !_maskCollected && MathF.Abs(_playerX - dollCenterX) < DOLL_INTERACTION_RANGE;
+        _isAtNextDoor = _passUnlocked && MathF.Abs(_playerX - WORLD_MARGIN) < EXIT_RANGE_NEXT;
         _isAtExit = MathF.Abs(_playerX - _recepcaoExitX) < EXIT_RANGE_RECEPCAO;
 
-        // A tecla E coleta a máscara, inicia a conversa ou permite sair.
-        // A saída continua disponível mesmo que a máscara não seja coletada.
+        // A tecla E coleta a máscara, conversa com o Estranho ou permite sair.
         if (_activeTalk == null && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
         {
             if (_isNearMask)
@@ -299,14 +459,36 @@ public class Scene_assombrado : Scene
             }
             else if (_canTalk)
             {
-                StartTalk(_raposoTalk);
+                StartTalk(_hasFullDisguise ? _disguiseTalk : _raposoTalk);
+            }
+            else if (_isAtNextDoor)
+            {
+                Core.ChangeScene(new Scene_final());
+                return;
             }
             else if (_isAtExit)
             {
+                // Sair sem a máscara é permitido: quem barra o jogador é o Vigia, na
+                // recepção (cenário 1), que o traz de volta para cá.
                 Core.ChangeScene(new Scene_recepcao(RecepcaoSpawn.FromAssombrado));
                 return;
             }
         }
+    }
+
+    // Cenário 2: o Estranho alcançou o jogador.
+    private void StartGameOver()
+    {
+        _state = SceneState.GameOver;
+        _stateRemainingMs = GAME_OVER_MS;
+    }
+
+    // O game over volta ao primeiro checkpoint: o momento em que o Vigia colocou Alma
+    // no vagão assombrado. O puzzle recomeça do zero a partir dali.
+    private void FinishGameOver()
+    {
+        GameSession.RestoreCheckpoint();
+        Core.ChangeScene(new Scene_recepcao(RecepcaoSpawn.FromAssombrado));
     }
 
     private void CollectMask()
@@ -314,7 +496,7 @@ public class Scene_assombrado : Scene
         if (_maskCollected)
             return;
 
-        // Registra a máscara no inventário. A boneca passa a mostrar doll-head.
+        // Registra a máscara no inventário. A boneca passa a mostrar doll-base.
         GameSession.Inventory.CollectItem(GameItems.MaskId, GameItems.MaskIcon);
         _maskCollected = true;
     }
@@ -325,7 +507,7 @@ public class Scene_assombrado : Scene
         _talkRemainingMs = talk.TotalMs;
         talk.Dialog.Start();
 
-        // Vira o jogador na direção de Raposo antes de iniciar a conversa.
+        // Vira o jogador na direção do Estranho antes de iniciar a conversa.
         _player = _raposoX < _playerX ? _playerLeft : _playerRight;
     }
 
@@ -387,6 +569,22 @@ public class Scene_assombrado : Scene
             : MathHelper.Lerp(_cameraX, target, MathHelper.Clamp(8f * dt, 0f, 1f));
     }
 
+    private void DrawGameOverOverlay()
+    {
+        int w = Core.GraphicsDevice.PresentationParameters.BackBufferWidth;
+        int h = Core.GraphicsDevice.PresentationParameters.BackBufferHeight;
+
+        float elapsed = (float)((GAME_OVER_MS - _stateRemainingMs) / GAME_OVER_MS);
+        float alpha = MathHelper.Clamp(elapsed * 3f, 0f, 1f) * 0.85f;
+
+        Vector2 size = _font.MeasureString(GAME_OVER_TEXT);
+
+        Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+        Core.SpriteBatch.Draw(_pixel, new Rectangle(0, 0, w, h), Color.Black * alpha);
+        Core.SpriteBatch.DrawString(_font, GAME_OVER_TEXT, new Vector2((w - size.X) * 0.5f, (h - size.Y) * 0.5f), Color.Red);
+        Core.SpriteBatch.End();
+    }
+
     public override void Draw(GameTime gameTime)
     {
         Core.GraphicsDevice.Clear(Color.DarkSlateGray);
@@ -411,11 +609,18 @@ public class Scene_assombrado : Scene
         Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
         GameSession.Inventory.Draw(Core.SpriteBatch, new Vector2(60, 60));
 
-        if (_activeTalk == null)
+        if (_activeTalk == null && _state == SceneState.Playing)
         {
-            string prompt = _canTalk
-                ? PRESS_E_TALK
-                : (_isNearMask ? PRESS_E_COLLECT_MASK : (_isAtExit ? PRESS_E_INTERECT : null));
+            string prompt = null;
+            if (_canTalk)
+                prompt = PRESS_E_TALK;
+            else if (_isNearMask)
+                prompt = PRESS_E_COLLECT_MASK;
+            else if (_isAtNextDoor)
+                prompt = PRESS_E_NEXT;
+            else if (_isAtExit)
+                prompt = PRESS_E_INTERECT;
+
             if (prompt != null)
             {
                 Vector2 textSize = _font.MeasureString(prompt);
@@ -428,6 +633,10 @@ public class Scene_assombrado : Scene
         }
 
         Core.SpriteBatch.End();
+
+        // Tela de game over: escurece a sala e mostra a mensagem.
+        if (_state == SceneState.GameOver)
+            DrawGameOverOverlay();
 
         // Desenha somente o diálogo que está ativo.
         if (_activeTalk != null)
