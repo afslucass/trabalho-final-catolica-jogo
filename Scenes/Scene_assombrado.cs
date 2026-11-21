@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
 using GameCore;
 using GameCore.Graphics;
 using GameCore.Scenes;
@@ -68,6 +69,16 @@ public class Scene_assombrado : Scene, ISaveableScene
     private const string RAPOSO_ANIMATION = "hooded-animation";
     private const string RAPOSO_HEAD_SPRITE = "hooded-head";
     private const float TALK_RANGE = 330f;
+
+    // ---------- Áudio da cena ----------
+    // O ambiente permanece em OGG e é reproduzido como Song/MediaPlayer.
+    // A perseguição é WAV e é reproduzida como SoundEffect em loop.
+    private Song _ambienceSong;
+    private SoundEffect _chaseEffect;
+    private SoundEffectInstance _chaseInstance;
+
+    private const float AMBIENCE_VOLUME = 0.45f;
+    private const float CHASE_VOLUME = 0.75f;
 
     // Velocidade da perseguição: no começo é a metade da velocidade do jogador.
     // A cada volta ao vagão sem o item necessário (cenário 1) ganha RAPOSO_SPEED_PER_RETRY,
@@ -236,13 +247,67 @@ public class Scene_assombrado : Scene, ISaveableScene
         _font = Content.Load<SpriteFont>("fonts/KiwiSoda");
         _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
 
+        // Carrega o ambiente diretamente do arquivo OGG, sem precisar convertê-lo.
+        // O arquivo deve estar incluído no Content.mgcb como Song.
+        _ambienceSong = Content.Load<Song>("audio/sala_estranho");
+
+        // Carrega o áudio de perseguição WAV como efeito sonoro.
+        // O arquivo deve estar incluído no Content.mgcb como Sound Effect.
+        _chaseEffect = Content.Load<SoundEffect>("audio/perseguicao");
+        _chaseInstance = _chaseEffect.CreateInstance();
+        _chaseInstance.IsLooped = true;
+        _chaseInstance.Volume = MathHelper.Clamp(CHASE_VOLUME, 0f, 1f);
+
+        // Em uma visita normal toca o ambiente. Se a perseguição já estiver ativa
+        // (retorno ao vagão), começa diretamente com o áudio de perseguição.
+        if (_raposoChasing)
+            StartChaseAudio();
+        else
+            StartAmbienceAudio();
+
         BuildDialogs();
     }
 
     public override void UnloadContent()
     {
+        StopAllSceneAudio();
+        _chaseInstance?.Dispose();
         _pixel?.Dispose();
         base.UnloadContent();
+    }
+
+    // Inicia o áudio ambiente OGG em loop.
+    private void StartAmbienceAudio()
+    {
+        _chaseInstance?.Stop();
+
+        if (_ambienceSong == null)
+            return;
+
+        MediaPlayer.Stop();
+        MediaPlayer.IsRepeating = true;
+        MediaPlayer.Volume = MathHelper.Clamp(Core.Audio.SongVolume * AMBIENCE_VOLUME, 0f, 1f);
+        MediaPlayer.Play(_ambienceSong);
+    }
+
+    // Troca o ambiente pelo áudio WAV da perseguição.
+    private void StartChaseAudio()
+    {
+        MediaPlayer.Stop();
+
+        if (_chaseInstance == null)
+            return;
+
+        _chaseInstance.Volume = MathHelper.Clamp(Core.Audio.SoundEffectVolume * CHASE_VOLUME, 0f, 1f);
+        if (_chaseInstance.State != SoundState.Playing)
+            _chaseInstance.Play();
+    }
+
+    // Para os dois áudios ao sair da cena ou iniciar o Game Over.
+    private void StopAllSceneAudio()
+    {
+        MediaPlayer.Stop();
+        _chaseInstance?.Stop();
     }
 
     // Cria as conversas do Estranho. Para alterar as falas, edite os textos abaixo.
@@ -329,6 +394,9 @@ public class Scene_assombrado : Scene, ISaveableScene
         GameSession.HauntedPuzzleStarted = true; // A partir daqui os itens podem ser coletados.
         _raposoChasing = true;
         _chaseDelayMs = CHASE_START_DELAY_MS;
+
+        // A música muda assim que a conversa termina e a perseguição é ativada.
+        StartChaseAudio();
     }
 
     private void UnlockPassage()
@@ -494,6 +562,7 @@ public class Scene_assombrado : Scene, ISaveableScene
     {
         _state = SceneState.GameOver;
         _stateRemainingMs = GAME_OVER_MS;
+        StopAllSceneAudio();
     }
 
     // O game over volta ao primeiro checkpoint: o momento em que o Vigia colocou Alma
@@ -553,15 +622,26 @@ public class Scene_assombrado : Scene, ISaveableScene
 
         if (Core.Input.Keyboard.WasKeyJustPressed(Keys.OemPlus))
         {
-            Core.Audio.SongVolume += 0.1f;
-            Core.Audio.SoundEffectVolume += 0.1f;
+            Core.Audio.SongVolume = MathHelper.Clamp(Core.Audio.SongVolume + 0.1f, 0f, 1f);
+            Core.Audio.SoundEffectVolume = MathHelper.Clamp(Core.Audio.SoundEffectVolume + 0.1f, 0f, 1f);
+            UpdateSceneAudioVolumes();
         }
 
         if (Core.Input.Keyboard.WasKeyJustPressed(Keys.OemMinus))
         {
-            Core.Audio.SongVolume -= 0.1f;
-            Core.Audio.SoundEffectVolume -= 0.1f;
+            Core.Audio.SongVolume = MathHelper.Clamp(Core.Audio.SongVolume - 0.1f, 0f, 1f);
+            Core.Audio.SoundEffectVolume = MathHelper.Clamp(Core.Audio.SoundEffectVolume - 0.1f, 0f, 1f);
+            UpdateSceneAudioVolumes();
         }
+    }
+
+    // Mantém os volumes dos dois tipos de áudio sincronizados com os controles + e -.
+    private void UpdateSceneAudioVolumes()
+    {
+        MediaPlayer.Volume = MathHelper.Clamp(Core.Audio.SongVolume * AMBIENCE_VOLUME, 0f, 1f);
+
+        if (_chaseInstance != null)
+            _chaseInstance.Volume = MathHelper.Clamp(Core.Audio.SoundEffectVolume * CHASE_VOLUME, 0f, 1f);
     }
 
     private float GetWorldScale()

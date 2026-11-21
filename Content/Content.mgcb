@@ -48,6 +48,20 @@
 /processorParam:Version=3.8.5.1
 /build:audio/recepcao_ambience.ogg
 
+#begin audio/perseguicao.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/processorParam:Version=3.8.5.1
+/build:audio/perseguicao.wav
+
+#begin audio/sala_estranho.ogg
+/importer:OggImporter
+/processor:SongProcessor
+/processorParam:Quality=Best
+/processorParam:Version=3.8.5.1
+/build:audio/sala_estranho.ogg
+
 #begin audio/theme.ogg
 /importer:OggImporter
 /processor:SongProcessor
