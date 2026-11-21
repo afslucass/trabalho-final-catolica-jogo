@@ -75,6 +75,25 @@ public class Scene_recepcao : Scene, ISaveableScene
     // Maximum distance (in background pixels) for interacting with the Watcher.
     private const float TALK_RANGE = 330f;
 
+    // ---------- Vigia acompanhando ----------
+    // Depois da primeira conversa (estágio FalouComVigia) o Vigia acompanha Alma pela
+    // recepção. Nos outros estágios ele fica no posto (centro do vagão) e, se estiver
+    // longe dele, volta andando para lá.
+    private float _vigiaPostX;
+    private const float VIGIA_FOLLOW_DISTANCE = 300f;  // Distância que mantém de Alma (menor que TALK_RANGE, para ainda dar para conversar).
+    private const float VIGIA_FOLLOW_SPEED = 520f;     // Um pouco mais rápido que o andar de Alma, para alcançá-la.
+
+    // Pequeno "pulinho" enquanto anda, já que a sprite do Vigia é uma imagem só.
+    private const float VIGIA_BOB_HEIGHT = 14f;
+    private const float VIGIA_BOB_SPEED = 9f;
+    private float _vigiaWalkTime;
+    private float _vigiaBobOffset;
+
+    // O Vigia só acompanha Alma na primeira passagem pela recepção (chegando da
+    // introdução). Ao voltar da Caldeira ou do vagão assombrado, ou ao carregar um
+    // save, ele já nasce no posto e fica parado.
+    private readonly bool _vigiaCanFollow;
+
     // ---------- Exits ----------
     // The two background arches: the left one leads to the Haunted Train,
     // and the right one leads to the Boiler. Positions are ratios of background width.
@@ -96,6 +115,8 @@ public class Scene_recepcao : Scene, ISaveableScene
     private const string LOCKED_LEFT = "A porta esta trancada";
     private const string LOCKED_RIGHT = "Converse com o Vigia antes de seguir";
 
+    Color Alloy = new Color(201, 149, 0);
+
     // ---------- Dialogs ----------
     // Stores the dialog controller, total duration, and completion callback.
     private class Talk
@@ -107,7 +128,8 @@ public class Scene_recepcao : Scene, ISaveableScene
 
     private Talk _firstTalk;      // Intro stage: Watcher's welcome
     private Talk _reminderTalk;   // TalkedToWatcher stage: reminder to go right
-    private Talk _secondTalk;     // Judged stage: agitated Watcher guides Alma to the Haunted Train
+    private Talk _secondTalk;     // Judged stage: Justiça brings Alma back; the agitated Watcher sends her to the Haunted Train
+    private Talk _maskTalk;       // Alma com a máscara: o Vigia a confunde com um ajudante do Estranho
     private Talk _idleTalk;       // Other stages
 
     private Talk _activeTalk;     // Currently playing dialog (null = none)
@@ -132,10 +154,10 @@ public class Scene_recepcao : Scene, ISaveableScene
     private bool _isNearNecklace;
 
     // Cenário 1: o jogador tentou passar sem o item necessário. O Vigia o reconhece e o
-    // leva de volta ao vagão assombrado (a fala do Vigia ainda não existe).
+    // leva de volta ao vagão assombrado.
     private const float VIGIA_BLOCK_RANGE = 500f;  // Sem o item 1, não passa daqui em direção ao Vigia.
-    private const double CAUGHT_MS = 2200;
-    private const string CAUGHT_TEXT = "O Vigia te reconheceu! De volta ao vagão assombrado...";
+    private const double CAUGHT_MS = 3000;
+    private const string CAUGHT_TEXT = "ALMA! MALDIÇÃO! Você não passará por mim, MORRA!";
     private bool _caught;
     private double _caughtRemainingMs;
     private Texture2D _pixel;
@@ -147,6 +169,9 @@ public class Scene_recepcao : Scene, ISaveableScene
     {
         _spawn = spawn;
         _startX = startX;
+
+        // Só acompanha na primeira visita, vindo da introdução (e não ao carregar um save).
+        _vigiaCanFollow = spawn == RecepcaoSpawn.Start && !startX.HasValue;
     }
 
     public override void Initialize()
@@ -201,14 +226,15 @@ public class Scene_recepcao : Scene, ISaveableScene
         _playerRight.Scale = Vector2.One;
         _player = _playerRight;
 
-        // Watcher: positioned at the center of the train, in front of the tree corridor.
+        // Watcher: his post is the center of the train, in front of the tree corridor.
         _vigiaLeft = charactersAtlas.CreateAnimatedSprite(VIGIA_LEFT_ANIMATION);
         _vigiaLeft.Scale = Vector2.One;
         _vigiaRight = charactersAtlas.CreateAnimatedSprite(VIGIA_RIGHT_ANIMATION);
         _vigiaRight.Scale = Vector2.One;
         _vigia = _vigiaLeft;
 
-        _vigiaX = _background.Width * 0.5f;
+        _vigiaPostX = _background.Width * 0.5f;
+        _vigiaX = _vigiaPostX;
         _leftExitX = _background.Width * LEFT_EXIT_RATIO;
         _rightExitX = _background.Width * RIGHT_EXIT_RATIO;
 
@@ -298,6 +324,7 @@ public class Scene_recepcao : Scene, ISaveableScene
         });
 
         // Unlocks the right exit (Boiler) when the first dialog ends.
+        // A partir daqui (estágio FalouComVigia) o Vigia passa a acompanhar Alma.
         _firstTalk = CreateTalk(firstSteps, () => GameSession.Stage = StoryStage.FalouComVigia);
 
         // ----- TalkedToWatcher stage: reminder (replace placeholder text) -----
@@ -313,28 +340,49 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         _reminderTalk = CreateTalk(reminderSteps, null);
 
-        // ----- Judged stage: the Watcher becomes agitated (replace placeholder text) -----
+        // ----- Judged stage: Justiça brings Alma back and the Watcher becomes agitated -----
         List<DialogCutsceneSteps> secondSteps = new();
 
         secondSteps.Add(new DialogCutsceneSteps
         {
-            caption = Wrap("Texto do Vigia depois da Justiça 1"),
+            caption = Wrap("Justiça: Vigia, como havia me dito, aconteceu."),
             hasCaptionFadeIn = true,
-            durationInMillis = 400,
+            durationInMillis = 4300,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         secondSteps.Add(new DialogCutsceneSteps
         {
-            caption = Wrap("Texto do Vigia depois da Justiça 2"),
+            caption = Wrap("Vigia: Eu sabia, não me restavam dúvidas, ALMA, DESTRUIDORA, USURPADORA!"),
             hasCaptionFadeIn = true,
-            durationInMillis = 400,
+            durationInMillis = 5300,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         secondSteps.Add(new DialogCutsceneSteps
         {
-            caption = Wrap("Texto do Vigia depois da Justiça 3"),
+            caption = Wrap("Justiça: Talvez pudesse haver algum engano… A velha morte certamente teria algo a dizer."),
             hasCaptionFadeIn = true,
-            durationInMillis = 400,
+            durationInMillis = 6700,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+        secondSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Vigia: TRAIDOR! Não entende o que isso significa? Minhas palavras não alcançam suas orelhas? É O NOSSO FIM! EU REFORÇO! O NOSSO FIM"),
+            hasCaptionFadeIn = true,
+            durationInMillis = 9700,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+        secondSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Justiça: O que deveria ser feito?"),
+            hasCaptionFadeIn = true,
+            durationInMillis = 4000,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+        secondSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Vigia: Criatura sombria, o mal encarnado, deixe Alma a mercê de nosso amigo, o Estranho há de dar-lhe uma boa lição…"),
+            hasCaptionFadeIn = true,
+            durationInMillis = 9000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
 
@@ -345,6 +393,40 @@ public class Scene_recepcao : Scene, ISaveableScene
             // Primeiro checkpoint do jogo: o Vigia coloca Alma no vagão assombrado.
             GameSession.SaveCheckpoint(_playerX);
         });
+
+        // ----- Com a máscara: o Vigia confunde Alma com um ajudante do Estranho -----
+        List<DialogCutsceneSteps> maskSteps = new();
+
+        maskSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Coça… Coça tanto…"),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3000,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+        maskSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Não me interrompa… O que seria você? Algum dos ajudantes do Estranho?"),
+            hasCaptionFadeIn = true,
+            durationInMillis = 6000,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+        maskSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Pobre criatura, a fome de seu mestre sempre ultrapassa a sua necessidade de auxílio…"),
+            hasCaptionFadeIn = true,
+            durationInMillis = 6700,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+        maskSteps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Boa sorte criatura."),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3000,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+        });
+
+        _maskTalk = CreateTalk(maskSteps, null);
 
         // ----- Other stages (replace placeholder text) -----
         List<DialogCutsceneSteps> idleSteps = new();
@@ -371,15 +453,21 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         return new Talk
         {
-            Dialog = new DialogCutsceneController(steps, Color.White, _font, Core.GraphicsDevice),
+            Dialog = new DialogCutsceneController(steps, Alloy, _font, Core.GraphicsDevice),
             TotalMs = total,
             OnFinished = onFinished
         };
     }
 
-    // Selects the Watcher's dialog based on the current story stage.
+    // Selects the Watcher's dialog based on the inventory and the current story stage.
     private Talk ChooseTalk()
     {
+        // Com a máscara, o Vigia confunde Alma com um ajudante do Estranho.
+        if (GameSession.Inventory.Has(GameItems.MaskId))
+        {
+            return _maskTalk;
+        }
+
         return GameSession.Stage switch
         {
             StoryStage.Intro => _firstTalk,
@@ -468,16 +556,19 @@ public class Scene_recepcao : Scene, ISaveableScene
         }
 
         // Com o puzzle iniciado, sem o item 1 (máscara) o jogador não passa pela recepção:
-        // ao se aproximar do Vigia ele é reconhecido e levado de volta.
+        // ao se aproximar do Vigia (do posto dele) ele é reconhecido e levado de volta.
         if (GameSession.HauntedPuzzleStarted &&
             !GameSession.Inventory.Has(GameItems.MaskId) &&
-            _playerX > _vigiaX - VIGIA_BLOCK_RANGE)
+            _playerX > _vigiaPostX - VIGIA_BLOCK_RANGE)
         {
             StartCaught();
             return;
         }
 
         UpdateCamera(dt, snap: false);
+
+        // O Vigia acompanha Alma (estágio FalouComVigia) ou volta ao posto.
+        UpdateVigia(dt);
 
         // Turns the Watcher toward the player's position.
         _vigia = _playerX < _vigiaX ? _vigiaLeft : _vigiaRight;
@@ -552,6 +643,54 @@ public class Scene_recepcao : Scene, ISaveableScene
         _activeTalk = talk;
         _talkRemainingMs = talk.TotalMs;
         talk.Dialog.Start();
+    }
+
+    // O Vigia acompanha Alma depois da primeira conversa. Nos outros estágios
+    // ele volta ao posto. Fica parado enquanto uma conversa está tocando.
+    private void UpdateVigia(float dt)
+    {
+        float step = 0f;
+        float direction = 0f;
+
+        if (_activeTalk == null)
+        {
+            if (_vigiaCanFollow && GameSession.Stage == StoryStage.FalouComVigia)
+            {
+                // Só anda se Alma estiver mais longe que a distância de acompanhamento.
+                // Para exatamente nela, sem encostar e sem recuar quando Alma se aproxima.
+                float distance = _playerX - _vigiaX;
+                float excess = MathF.Abs(distance) - VIGIA_FOLLOW_DISTANCE;
+                if (excess > 0f)
+                {
+                    direction = MathF.Sign(distance);
+                    step = MathF.Min(VIGIA_FOLLOW_SPEED * dt, excess);
+                }
+            }
+            else
+            {
+                // Fora do estágio de acompanhar, volta andando para o posto.
+                float toPost = _vigiaPostX - _vigiaX;
+                if (MathF.Abs(toPost) > 1f)
+                {
+                    direction = MathF.Sign(toPost);
+                    step = MathF.Min(VIGIA_FOLLOW_SPEED * dt, MathF.Abs(toPost));
+                }
+            }
+        }
+
+        _vigiaX = MathHelper.Clamp(_vigiaX + direction * step, WORLD_MARGIN, _background.Width - WORLD_MARGIN);
+
+        // Pulinho só enquanto anda.
+        if (step > 0f)
+        {
+            _vigiaWalkTime += dt;
+            _vigiaBobOffset = -MathF.Abs(MathF.Sin(_vigiaWalkTime * VIGIA_BOB_SPEED)) * VIGIA_BOB_HEIGHT;
+        }
+        else
+        {
+            _vigiaWalkTime = 0f;
+            _vigiaBobOffset = 0f;
+        }
     }
 
     // Moves the player horizontally only; vertical movement is not supported.
@@ -668,7 +807,9 @@ public class Scene_recepcao : Scene, ISaveableScene
         }
 
         // Sprites are drawn from the top-left corner, keeping their feet aligned at GROUND_Y.
-        _vigia.Draw(Core.SpriteBatch, new Vector2(_vigiaX - _vigia.Width * 0.5f, GROUND_Y - _vigia.Height));
+        // O Vigia ganha um pulinho (_vigiaBobOffset) enquanto anda.
+        _vigia.Draw(Core.SpriteBatch,
+            new Vector2(_vigiaX - _vigia.Width * 0.5f, GROUND_Y - _vigia.Height + _vigiaBobOffset));
         _player.Draw(Core.SpriteBatch, new Vector2(_playerX - _player.Width * 0.5f, GROUND_Y - _player.Height));
 
         Core.SpriteBatch.End();
@@ -736,6 +877,7 @@ public class Scene_recepcao : Scene, ISaveableScene
         _firstTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
         _reminderTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
         _secondTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
+        _maskTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
         _idleTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
         Core.SpriteBatch.End();
 
