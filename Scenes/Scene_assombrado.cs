@@ -57,8 +57,10 @@ public class Scene_assombrado : Scene
 
     // ---------- Estranho (Raposo) ----------
     private AnimatedSprite _raposo;
+    private Sprite _raposoHead;
     private float _raposoX;
     private const string RAPOSO_ANIMATION = "hooded-animation";
+    private const string RAPOSO_HEAD_SPRITE = "hooded-head";
     private const float TALK_RANGE = 330f;
 
     // Velocidade da perseguição: no começo é a metade da velocidade do jogador.
@@ -213,6 +215,10 @@ public class Scene_assombrado : Scene
 
         _raposo = charactersAtlas.CreateAnimatedSprite(RAPOSO_ANIMATION);
         _raposo.Scale = Vector2.One;
+
+        // Cabeça utilizada quando a perseguição começa.
+        _raposoHead = charactersAtlas.CreateSprite(RAPOSO_HEAD_SPRITE);
+        _raposoHead.Scale = Vector2.One;
 
         // Mantém a posição visual que o Raposo tinha no arquivo original (lado esquerdo).
         _raposoX = _raposo.Width;
@@ -600,7 +606,19 @@ public class Scene_assombrado : Scene
         _background_RECEPCAO.Draw(Core.SpriteBatch, Vector2.Zero);
         Sprite dollSprite = _maskCollected ? _dollBase : _dollHead;
         dollSprite.Draw(Core.SpriteBatch, new Vector2(DOLL_X, GROUND_Y - dollSprite.Height - 100));
-        _raposo.Draw(Core.SpriteBatch, new Vector2(_raposoX - _raposo.Width * 0.5f, GROUND_Y - _raposo.Height));
+        if (_raposoChasing)
+        {
+            _raposoHead.Draw(
+                Core.SpriteBatch,
+                new Vector2(_raposoX - _raposoHead.Width * 0.5f, GROUND_Y - _raposoHead.Height));
+        }
+        else
+        {
+            _raposo.Draw(
+                Core.SpriteBatch,
+                new Vector2(_raposoX - _raposo.Width * 0.5f, GROUND_Y - _raposo.Height));
+        }
+
         _player.Draw(Core.SpriteBatch, new Vector2(_playerX - _player.Width * 0.5f, GROUND_Y - _player.Height));
 
         Core.SpriteBatch.End();
