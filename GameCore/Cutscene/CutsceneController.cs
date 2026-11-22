@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using GameCore.Graphics;
 
 namespace GameCore.Cutscene;
 
@@ -24,9 +25,14 @@ public class CutsceneController
     private float imageOpacity = 1f;
     private float textOpacity = 1f;
     private readonly HashSet<char> supportedChars;
+
     private readonly char fallbackChar;
+
     private List<string> lines = new();
+    private float blockWidth;
     private int linesStepIndex = -1;
+
+    public bool UseTextBox { get; set; } = true;
 
     public CutsceneController(
         List<Step> steps,
@@ -72,7 +78,61 @@ public class CutsceneController
             0f,
             1f
         );
-    }           
+    }
+    private string MakeDrawable(string text)
+    {
+        StringBuilder result = new(text.Length);
+
+        foreach (char c in text)
+        {
+            if (c == '\n' || this.supportedChars.Contains(c))
+            {
+                result.Append(c);
+                continue;
+            }
+
+            switch (c)
+            {
+                case '\r':
+                    break; // ignora retorno de carro
+                case '\u2026': // …
+                    result.Append("...");
+                    break;
+                case '\u201C': // “
+                case '\u201D': // ”
+                    result.Append('"');
+                    break;
+                case '\u2018': // ‘
+                case '\u2019': // ’
+                    result.Append('\'');
+                    break;
+                case '\u2013': // –
+                case '\u2014': // —
+                    result.Append('-');
+                    break;
+                case '\u00A0': // espaço sem quebra
+                    result.Append(' ');
+                    break;
+                default:
+                    result.Append(this.fallbackChar);
+                    break;
+            }
+        }
+
+        return result.ToString();
+    }
+
+    // Largura máxima de uma linha: a que cabe dentro do balão ou, sem balão,
+    // uma fração da largura da tela.
+    private float GetMaxLineWidth()
+    {
+        if (this.UseTextBox && TextBoxRenderer.IsAvailable)
+        {
+            return TextBoxRenderer.GetMaxTextWidth(this.graphicsDevice);
+        }
+
+        return this.graphicsDevice.PresentationParameters.BackBufferWidth * MAX_TEXT_WIDTH_RATIO;
+    }
     private List<string> BuildLines(string text)
     {
         List<string> result = new();
@@ -80,12 +140,12 @@ public class CutsceneController
         if (string.IsNullOrEmpty(text))
             return result;
 
+        string drawable = MakeDrawable(text);
 
-        float maxWidth =
-            this.graphicsDevice.PresentationParameters.BackBufferWidth * MAX_TEXT_WIDTH_RATIO;
+        float maxWidth = GetMaxLineWidth();
         float spaceWidth = this.font.MeasureString(" ").X;
 
-        foreach (string paragraph in text.Split('\n'))
+        foreach (string paragraph in drawable.Split('\n'))
         {
             StringBuilder line = new();
             float lineWidth = 0f;
@@ -96,6 +156,7 @@ public class CutsceneController
 
                 if (lineWidth > 0f && lineWidth + spaceWidth + wordWidth > maxWidth)
                 {
+                    // A palavra não cabe na linha atual, então começa uma nova.
                     result.Add(line.ToString());
                     line.Clear();
                     lineWidth = 0f;
@@ -109,6 +170,8 @@ public class CutsceneController
                 line.Append(word);
                 lineWidth += wordWidth;
             }
+
+            // Guarda a última linha do parágrafo (ou uma linha vazia, se for uma quebra manual).
             result.Add(line.ToString());
         }
 
@@ -184,15 +247,51 @@ public class CutsceneController
         if (this.linesStepIndex != this.currentStepIndex)
         {
             this.lines = BuildLines(currentStep.text);
+
+            this.blockWidth = 0f;
+            foreach (string line in this.lines)
+            {
+                this.blockWidth = MathF.Max(this.blockWidth, this.font.MeasureString(line).X);
+            }
+
             this.linesStepIndex = this.currentStepIndex;
         }
+
+        if (this.lines.Count == 0)
+            return;
+
+        float screenWidth = this.graphicsDevice.PresentationParameters.BackBufferWidth;
+        float screenHeight = this.graphicsDevice.PresentationParameters.BackBufferHeight;
+
         float lineHeight = this.font.LineSpacing;
         float blockHeight = this.lines.Count * lineHeight;
-        float top =
-            this.graphicsDevice.PresentationParameters.BackBufferHeight
-                - TEXT_BOTTOM_MARGIN
-                + lineHeight / 2f
-                - blockHeight;
+
+        float top;
+        float centerX;
+
+        // O balão aparece com fade só no primeiro passo; nos seguintes ele fica sempre
+        // visível, para não piscar a cada fala. O texto continua com o fade dele.
+        float boxOpacity = this.currentStepIndex == 0 ? this.textOpacity : 1f;
+
+        if (this.UseTextBox &&
+            TextBoxRenderer.Draw(
+                spriteBatch,
+                this.graphicsDevice,
+                new Vector2(this.blockWidth, blockHeight),
+                boxOpacity,
+                out Rectangle bounds))
+        {
+            // Bloco de texto centralizado dentro do balão.
+            top = bounds.Y + (bounds.Height - blockHeight) / 2f;
+            centerX = bounds.X + bounds.Width / 2f;
+        }
+        else
+        {
+            // Sem balão: o bloco de texto cresce para cima a partir da posição original
+            // (com uma linha só, fica exatamente onde ficava antes).
+            top = screenHeight - TEXT_BOTTOM_MARGIN + lineHeight / 2f - blockHeight;
+            centerX = screenWidth / 2f;
+        }
 
         for (int i = 0; i < this.lines.Count; i++)
         {
@@ -203,8 +302,7 @@ public class CutsceneController
             Vector2 lineSize = this.font.MeasureString(line);
 
             Vector2 linePosition = new Vector2(
-                this.graphicsDevice.PresentationParameters.BackBufferWidth / 2f
-                    - lineSize.X / 2f,
+                centerX - lineSize.X / 2f,
                 top + i * lineHeight
             );
 
