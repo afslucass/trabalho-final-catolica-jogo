@@ -6,15 +6,15 @@
         <Region name="player-2" x="287" y="100" width="147" height="259" />
 
         <Region name="hooded" x="60" y="360" width="321" height="465" />
-        <Region name="hooded-head" x="2127" y="1248" width="674" height="926" />
+        <Region name="hooded-head" x="2121" y="1241" width="689" height="940" />
 
         <Region name="owl-1" x="84" y="835" width="376" height="549" />
         <Region name="owl-2" x="465" y="835" width="376" height="549" />
-        <Region name="owl-1-item" x="899" y="920" width="448" height="451" />
-        <Region name="owl-2-item" x="1362" y="920" width="448" height="451" />
+        <Region name="owl-1-item" x="890" y="916" width="462" height="460" />
+        <Region name="owl-2-item" x="1354" y="916" width="462" height="460" />
 
         <Region name="doctor" x="69" y="1429" width="336" height="662" />
-        <Region name="doctor-seated" x="472" y="1579" width="381" height="486" />
+        <Region name="doctor-seated" x="465" y="1574" width="393" height="497" />
 
         <Region name="doll-head" x="484" y="36" width="414" height="395" />
         <Region name="doll-base" x="916" y="101" width="414" height="330" />
@@ -53,6 +53,13 @@
         </Animation>
         <Animation name="doctor-animation" delay="200">
             <Frame region="doctor" />
+        </Animation>
+        <Animation name="doctor-seated-animation" delay="200">
+            <Frame region="doctor-seated" />
+        </Animation>
+        <Animation name="owl-item-animation" delay="300">
+            <Frame region="owl-1-item" />
+            <Frame region="owl-2-item" />
         </Animation>
     </Animations>
 </TextureAtlas>

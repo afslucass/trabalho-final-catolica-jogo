@@ -3,6 +3,7 @@ using GameCore.Save;
 using Microsoft.Xna.Framework;
 
 namespace GameCore;
+
 public enum StoryStage
 {
     /// <summary>Acabou de chegar ao Limbo e ainda não falou com o Vigia.</summary>
@@ -59,6 +60,7 @@ public static class GameSession
 {
     // Armazena a pontuação global do jogador entre todas as telas
     public static int Score { get; set; } = 0;
+    public static bool IntroCutscenePlayed { get; set; } = false;
 
     // Armazena o inventário global com os itens coletados
     public static InventoryController Inventory { get; set; } = new InventoryController();
@@ -130,6 +132,7 @@ public static class GameSession
         HauntedRetries = 0;
         HauntedPuzzleStarted = false;
         Checkpoint = null;
+        IntroCutscenePlayed = false;
     }
     public static SaveData CreateSaveData(string sceneId, Vector2 playerPosition)
     {

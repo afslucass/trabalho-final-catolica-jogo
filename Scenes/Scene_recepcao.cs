@@ -9,6 +9,7 @@ using GameCore.CustomMouseCursor;
 using GameCore.DialogCutscene;
 using GameCore.Graphics;
 using GameCore.Scenes;
+using GameCore.Cutscene;
 using GameCore.Save;
 
 namespace TestGame.Scenes;
@@ -31,6 +32,9 @@ public class Scene_recepcao : Scene, ISaveableScene
     // to support any resolution. Background areas outside the window width
     // remain off-screen and are revealed as the camera scrolls.
     public string SaveId => "recepcao";
+
+    private CutsceneController cutscene;
+    private bool _showIntroCutscene;
     public Vector2 SavePlayerPosition => new Vector2(_playerX, GROUND_Y);
     private Sprite _background;
     private float _cameraX;
@@ -67,6 +71,8 @@ public class Scene_recepcao : Scene, ISaveableScene
     private AnimatedSprite _vigia;
     private AnimatedSprite _vigiaLeft;
     private AnimatedSprite _vigiaRight;
+    private AnimatedSprite _vigiaItch;   // Vigia coçando (depois da 2ª parte)
+    private const string VIGIA_ITCH_ANIMATION = "owl-item-animation";
     private float _vigiaX;
 
     private const string VIGIA_LEFT_ANIMATION = "owl-1-animation";
@@ -213,6 +219,7 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         // Atlas containing characters, items, and backgrounds from spritesheet_final.
         TextureAtlas charactersAtlas = TextureAtlas.FromFile(Content, "images/characters-atlas-definition.xml");
+        TextureAtlas cutsceneAtlas = TextureAtlas.FromFile(Content, "images/cutscene-atlas-definition.xml");
         MouseCursorAtlas cursorAtlas = MouseCursorAtlas.FromFile(Content, "cursor/cursor-atlas-definition.xml");
 
         // Reception background (3840 x 1080), drawn at its native size.
@@ -233,6 +240,9 @@ public class Scene_recepcao : Scene, ISaveableScene
         _vigiaRight.Scale = Vector2.One;
         _vigia = _vigiaLeft;
 
+        _vigiaItch = charactersAtlas.CreateAnimatedSprite(VIGIA_ITCH_ANIMATION);
+        _vigiaItch.Scale = Vector2.One;
+
         _vigiaPostX = _background.Width * 0.5f;
         _vigiaX = _vigiaPostX;
         _leftExitX = _background.Width * LEFT_EXIT_RATIO;
@@ -252,6 +262,123 @@ public class Scene_recepcao : Scene, ISaveableScene
         // (or a space) to prevent ArgumentException in MeasureString/DrawString.
         // Add accented characters to the .spritefont CharacterRegion to render them correctly.
         _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
+
+        
+        List<Step> steps = new List<Step>();
+        steps.Add(new Step
+        {
+            text = "Você nem repara o quão precioso o levantar do peito, a leve indicação de respiração de algo ainda vivo, na maioria dos casos pelo menos.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = true,
+            hasTextTransition = true,
+            durationInMillis = 2000,
+        });
+        steps.Add(new Step
+        {
+            text = "Enquanto deitado na maca de um hospital, você consegue sentir cada parte do seu corpo parar, a dor só dura um momento.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+            text = "Você fecha os olhos, com medo, seus lábios já incapazes de expressar suas últimas preces.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+            text = "No painel, apenas uma parada, Limbo. Ao longe, luzes fortes, mas não é nenhum tipo de maquinário. ",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+            text = "A visão do que se parece um inseto gigante, com seu corpo formado por vagões, não te assusta, na realidade, você não parece sentir absolutamente nada. ",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+            text = "A criatura olha em sua direção, e apesar de nenhuma palavra ser dita, você entende o seu chamado.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+            text = "Por meio de forças maiores, você sente seu corpo deslizar pelo ar. Uma atitude inconsciente, o anseio por uma curiosidade que não parece existir, sentimentos complicados de se descrever.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+            text = "O que há dentro deste trem? Você deve se perguntar.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+            text = "Uma única porta se abre para recebê-lo.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
+        });
+        steps.Add(new Step
+        {
+            text = "Você embarca no Limbo.",
+            image = cutsceneAtlas.CreateSprite("image-1"),
+            fadeDuration = 1000,
+            hasImageTransition = false,
+            hasTextTransition = false,
+            durationInMillis = 3000,
+        });
+
+        _showIntroCutscene = !GameSession.IntroCutscenePlayed;
+
+
+cutscene = new CutsceneController(
+    steps,
+    Color.Black,
+    Alloy,
+    _font,
+    Core.GraphicsDevice
+);
+
+if (_showIntroCutscene)
+{
+    cutscene.Start();
+    GameSession.IntroCutscenePlayed = true;
+}
+
+if (!GameSession.IntroCutscenePlayed)
+{
+    cutscene.Start();
+    GameSession.IntroCutscenePlayed = true;
+}
+
 
         cursorAtlas.SetCursor("cheese");
 
@@ -284,42 +411,42 @@ public class Scene_recepcao : Scene, ISaveableScene
         {
             caption = Wrap("AUTO LÁ! O que é isso que vejo? Um novo aperitivo? A grande Morte nunca falha... Bem-vindo! Bem-vindo! Bem-vindo ao meio termo! O Limbo abriga aqueles que estão de passagem."),
             hasCaptionFadeIn = true,
-            durationInMillis = 1200,
+            durationInMillis = 8000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Sou o grandioso VIGIA, tudo vejo, tudo sei. Eu te conheço de muito antes Alma, desdo seu nascimento, até o seu último suspiro..."),
             hasCaptionFadeIn = true,
-            durationInMillis = 1000,
+            durationInMillis = 7000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("De certa forma, somos íntimos, mas não se deixe levar, não somos camaradas."),
             hasCaptionFadeIn = true,
-            durationInMillis = 650,
+            durationInMillis = 6500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Seu corpo fraco te abandonou, você está aqui para seguir para a próxima fase do seu ciclo, assim como todos os outros antes, e como todos os próximos..."),
             hasCaptionFadeIn = true,
-            durationInMillis = 1100,
+            durationInMillis = 8000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Alma, seu destino te aguarda a direita desse vagão, não se surpreenda pelo o que está por vir, não irá durar por muito... Só precisamos ter certeza..."),
             hasCaptionFadeIn = true,
-            durationInMillis = 1100,
+            durationInMillis = 8000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
         firstSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("VÁ CRIATURA, me deixe às minhas novelas, os mortos não me entretém tanto quanto os vivos."),
             hasCaptionFadeIn = true,
-            durationInMillis = 750,
+            durationInMillis = 7500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
 
@@ -334,7 +461,7 @@ public class Scene_recepcao : Scene, ISaveableScene
         {
             caption = Wrap("Siga pela direita, Alma. A Caldeira te aguarda."),
             hasCaptionFadeIn = true,
-            durationInMillis = 400,
+            durationInMillis = 4000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
 
@@ -435,7 +562,7 @@ public class Scene_recepcao : Scene, ISaveableScene
         {
             caption = Wrap("Não tenho mais nada a dizer, Alma. Siga o seu caminho."),
             hasCaptionFadeIn = true,
-            durationInMillis = 400,
+            durationInMillis = 4000,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
         });
 
@@ -571,7 +698,14 @@ public class Scene_recepcao : Scene, ISaveableScene
         UpdateVigia(dt);
 
         // Turns the Watcher toward the player's position.
+        if (GameSession.Stage >= StoryStage.VagaoAssombrado)
+        {
+         _vigia = _vigiaItch;
+        }
+        else
+        {
         _vigia = _playerX < _vigiaX ? _vigiaLeft : _vigiaRight;
+        }
 
         // Updates the active dialog timer and ends the dialog when it reaches zero.
         // If DialogCutsceneController exposes an IsPlaying/IsFinished property,
@@ -879,6 +1013,10 @@ public class Scene_recepcao : Scene, ISaveableScene
         _secondTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
         _maskTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
         _idleTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
+        if (!GameSession.IntroCutscenePlayed || _showIntroCutscene)
+        {
+        cutscene.Draw(Core.SpriteBatch, gameTime);
+        }
         Core.SpriteBatch.End();
 
         base.Draw(gameTime);
