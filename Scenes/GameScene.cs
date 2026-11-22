@@ -95,8 +95,6 @@ public class GameScene : Scene
     private bool _isAtExitAssombrado;
 
     private InventoryController _inventory;
-    private Scene_recepcao _activeScene;
-
     private CutsceneController cutscene;
 
     public override void Initialize()

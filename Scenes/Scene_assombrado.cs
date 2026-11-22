@@ -112,7 +112,7 @@ public class Scene_assombrado : Scene
     private Talk _activeTalk;
     private double _talkRemainingMs;
     private bool _canTalk;
-    private const float DIALOG_MAX_WIDTH_RATIO = 0.8f;
+    private const float DIALOG_MAX_WIDTH_RATIO = 0.58f;
 
     private SpriteFont _font;
 

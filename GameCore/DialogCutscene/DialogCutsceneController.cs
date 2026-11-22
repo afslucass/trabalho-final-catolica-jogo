@@ -1,8 +1,9 @@
-
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using GameCore.Graphics;
 
 namespace GameCore.DialogCutscene;
 
@@ -20,6 +21,31 @@ public class DialogCutsceneController
     private bool hasCalledOnStepEnter;
 
     private const float CaptionFadeDuration = 500f;
+
+    // ---------- Balão de fala ----------
+    // Todas as medidas abaixo estão em pixels de uma tela 1080p e são multiplicadas por
+    // (altura da tela / 1080), então o balão mantém a proporção em qualquer resolução.
+    private const string TextBoxAsset = "images/text_box";
+    private const int TextBoxCornerSize = 54;        // Tamanho dos cantos na imagem (nine-slice).
+    private const float ReferenceHeight = 1080f;
+
+    private const float BoxMinWidth = 1302f;         // Tamanho original da imagem: o balão nunca fica menor que isso...
+    private const float BoxMinHeight = 262f;         // ...e só cresce quando o texto não cabe.
+    private const float BoxPaddingX = 80f;           // Espaço entre a borda do balão e o texto (horizontal).
+    private const float BoxPaddingY = 56f;           // Espaço entre a borda do balão e o texto (vertical).
+    private const float BoxBottomMargin = 60f;       // Distância do balão até a borda de baixo da tela.
+    private const float BoxSideMargin = 20f;         // Distância mínima do balão até as bordas laterais.
+
+    // O balão é carregado uma única vez, pelo Content global do Core (que não é
+    // descarregado ao trocar de cena), e compartilhado por todos os diálogos.
+    private static NineSlice s_textBox;
+    private static bool s_textBoxLoadFailed;
+
+    /// <summary>
+    /// Liga ou desliga o balão de fala deste diálogo. Desligado, o texto é desenhado
+    /// solto, como antes.
+    /// </summary>
+    public bool UseTextBox { get; set; } = true;
 
     public DialogCutsceneController(
         List<DialogCutsceneSteps> dialogCutsceneSteps,
@@ -157,6 +183,27 @@ public class DialogCutsceneController
         }
     }
 
+    // Carrega o balão na primeira vez que for preciso. Se a imagem não estiver no
+    // Content (ou der qualquer erro), o diálogo continua funcionando, sem o balão.
+    private static NineSlice GetTextBox()
+    {
+        if (s_textBox != null || s_textBoxLoadFailed)
+            return s_textBox;
+
+        try
+        {
+            Texture2D texture = Core.Content.Load<Texture2D>(TextBoxAsset);
+            s_textBox = new NineSlice(texture, TextBoxCornerSize, TextBoxCornerSize);
+        }
+        catch (Exception ex)
+        {
+            s_textBoxLoadFailed = true;
+            Debug.WriteLine($"[Dialog] Não foi possível carregar '{TextBoxAsset}': {ex.Message}");
+        }
+
+        return s_textBox;
+    }
+
     private void DrawCaption(
         SpriteBatch spriteBatch,
         DialogCutsceneSteps step)
@@ -177,10 +224,53 @@ public class DialogCutsceneController
         float screenHeight =
             this.graphicsDevice.PresentationParameters.BackBufferHeight;
 
-        Vector2 textPosition = new Vector2(
-            screenWidth / 2f - textSize.X / 2f,
-            screenHeight - 120f - textSize.Y / 2f
-        );
+        NineSlice textBox = this.UseTextBox ? GetTextBox() : null;
+
+        Vector2 textPosition;
+
+        if (textBox != null)
+        {
+            float uiScale = screenHeight / ReferenceHeight;
+
+            // O balão tem o tamanho original da imagem e só cresce se o texto não couber.
+            float boxWidth = MathF.Max(
+                BoxMinWidth * uiScale,
+                textSize.X + BoxPaddingX * 2f * uiScale
+            );
+            float boxHeight = MathF.Max(
+                BoxMinHeight * uiScale,
+                textSize.Y + BoxPaddingY * 2f * uiScale
+            );
+
+            // Nunca passa da largura da tela.
+            boxWidth = MathF.Min(boxWidth, screenWidth - BoxSideMargin * 2f * uiScale);
+
+            Rectangle bounds = new Rectangle(
+                (int)((screenWidth - boxWidth) / 2f),
+                (int)(screenHeight - BoxBottomMargin * uiScale - boxHeight),
+                (int)boxWidth,
+                (int)boxHeight
+            );
+
+            // O balão aparece com fade só no primeiro passo; nos seguintes ele fica
+            // sempre visível, para não piscar a cada fala. O texto continua com o fade dele.
+            float boxOpacity = this.currentStepIndex == 0 ? opacity : 1f;
+            textBox.Draw(spriteBatch, bounds, uiScale, Color.White * boxOpacity);
+
+            // Texto centralizado dentro do balão.
+            textPosition = new Vector2(
+                bounds.X + (bounds.Width - textSize.X) / 2f,
+                bounds.Y + (bounds.Height - textSize.Y) / 2f
+            );
+        }
+        else
+        {
+            // Sem balão: mesma posição de antes.
+            textPosition = new Vector2(
+                screenWidth / 2f - textSize.X / 2f,
+                screenHeight - 120f - textSize.Y / 2f
+            );
+        }
 
         spriteBatch.DrawString(
             this.font,

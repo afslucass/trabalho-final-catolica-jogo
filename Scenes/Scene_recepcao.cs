@@ -143,7 +143,7 @@ public class Scene_recepcao : Scene, ISaveableScene
     private bool _canTalk;
 
     // Maximum dialog line width, as a fraction of screen width.
-    private const float DIALOG_MAX_WIDTH_RATIO = 0.8f;
+    private const float DIALOG_MAX_WIDTH_RATIO = 0.58f;
 
     // UI and audio resources.
     private SpriteFont _font;
