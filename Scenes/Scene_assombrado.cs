@@ -105,6 +105,7 @@ public class Scene_assombrado : Scene
         public double TotalMs;
         public Action OnFinished;
     }
+    Color Alloy = new Color(201, 149, 0);
 
     private Talk _raposoTalk;    // Conversa que inicia o puzzle e a perseguição.
     private Talk _disguiseTalk;  // Disfarce completo: o Estranho deixa passar.
@@ -338,7 +339,7 @@ public class Scene_assombrado : Scene
 
         return new Talk
         {
-            Dialog = new DialogCutsceneController(steps, Color.White, _font, Core.GraphicsDevice),
+            Dialog = new DialogCutsceneController(steps, Alloy, _font, Core.GraphicsDevice),
             TotalMs = total,
             OnFinished = onFinished
         };

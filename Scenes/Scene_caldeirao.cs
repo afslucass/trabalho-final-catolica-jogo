@@ -51,6 +51,8 @@ public class Scene_caldeirao : Scene
 
     private SpriteFont _font;
 
+    Color Alloy = new Color(201, 149, 0);
+
     private const string PRESS_E_INTERECT = "Press E for go to Recepção";
 
     private Vector2 _pressEInterectPos;

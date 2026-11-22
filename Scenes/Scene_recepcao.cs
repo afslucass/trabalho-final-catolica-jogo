@@ -73,14 +73,14 @@ public class Scene_recepcao : Scene, ISaveableScene
     private const string VIGIA_RIGHT_ANIMATION = "owl-2-animation";
 
     // Maximum distance (in background pixels) for interacting with the Watcher.
-    private const float TALK_RANGE = 330f;
+    private const float TALK_RANGE = 200f;
 
     // ---------- Vigia acompanhando ----------
     // Depois da primeira conversa (estágio FalouComVigia) o Vigia acompanha Alma pela
     // recepção. Nos outros estágios ele fica no posto (centro do vagão) e, se estiver
     // longe dele, volta andando para lá.
     private float _vigiaPostX;
-    private const float VIGIA_FOLLOW_DISTANCE = 300f;  // Distância que mantém de Alma (menor que TALK_RANGE, para ainda dar para conversar).
+    private const float VIGIA_FOLLOW_DISTANCE = 400f;  // Distância que mantém de Alma (menor que TALK_RANGE, para ainda dar para conversar).
     private const float VIGIA_FOLLOW_SPEED = 520f;     // Um pouco mais rápido que o andar de Alma, para alcançá-la.
 
     // Pequeno "pulinho" enquanto anda, já que a sprite do Vigia é uma imagem só.
