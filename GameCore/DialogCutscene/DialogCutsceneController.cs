@@ -21,6 +21,7 @@ public class DialogCutsceneController
 
     private const float CaptionFadeDuration = 500f;
     public bool UseTextBox { get; set; } = true;
+    public bool IsRunning => hasStarted;
 
     public DialogCutsceneController(
         List<DialogCutsceneSteps> dialogCutsceneSteps,
