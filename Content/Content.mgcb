@@ -34,12 +34,26 @@
 /processorParam:Version=3.8.5.1
 /build:audio/collect.wav
 
+#begin audio/Final.ogg
+/importer:OggImporter
+/processor:SongProcessor
+/processorParam:Quality=Best
+/processorParam:Version=3.8.5.1
+/build:audio/Final.ogg
+
 #begin audio/intro_ambience.ogg
 /importer:OggImporter
 /processor:SongProcessor
 /processorParam:Quality=Best
 /processorParam:Version=3.8.5.1
 /build:audio/intro_ambience.ogg
+
+#begin audio/portas.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/processorParam:Version=3.8.5.1
+/build:audio/portas.wav
 
 #begin audio/recepcao_ambience.ogg
 /importer:OggImporter

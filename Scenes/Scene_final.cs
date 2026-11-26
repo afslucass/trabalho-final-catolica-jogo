@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
 using GameCore;
 using GameCore.Scenes;
 using GameCore.DialogCutscene;
@@ -26,6 +27,10 @@ public class Scene_final : Scene
     private double _remainingMs;
     private bool _finished;
 
+    // Música ambiente da cena final (audio/Final.ogg, carregada como Song).
+    private Song _music;
+    private const float MUSIC_VOLUME = 0.7f;
+
     public override bool CanPause => false;
 
     public override void LoadContent()
@@ -36,14 +41,82 @@ public class Scene_final : Scene
         _font = Content.Load<SpriteFont>("fonts/KiwiSoda");
         _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
 
+        _music = Content.Load<Song>("audio/Final");
+
         // Troque os textos abaixo pelo diálogo da Morte.
         List<DialogCutsceneSteps> steps = new();
         steps.Add(new DialogCutsceneSteps
         {
-            caption = Wrap("Diálogo da Morte vem aqui"),
+            caption = Wrap("Alma… Que bom conhecê-lo, estava te aguardando. Muito esperto, se utilizar de um disfarce para enganar meus funcionários…"),
             hasCaptionFadeIn = true,
-            durationInMillis = 5000,
-            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
+        });
+        steps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Eu sabia que esse dia chegaria, não tenho arrependimentos. Por favor, perdoe minhas criações, assim como eu, são imperfeitos, eles temem."),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
+        });
+        steps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Você deve estar confuso, certo?"),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
+        });
+        steps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Bom… Assim como você Alma, já fui um relés humano, como você, também acordei naquela estação, também adentrei o Limbo."),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
+        });
+        steps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Naquela época, porém, fui recebido por outras entidades, esses vagões também tinham outra aparência."),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
+        });
+        steps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Assim como você, fui julgado com a pesagem de uma pena, e, impressionantemente, também tive o mesmo peso que a  pena."),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
+        });
+        steps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("E então, a Morte veio me receber. Entenda Alma, eu não sou um ser infinito, a Morte precisa de uma sucessão, e o escolhido sempre pesará o mesmo que a pena."),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
+        });
+
+        steps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("A antiga Morte teve essa mesma conversa comigo… E, ao aceitar meu novo papel, uma nova era se iniciou. "),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
+        });
+
+        steps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("Entendo que errei em alguns pontos com a humanidade, mas como disse, não tenho arrependimentos, estou preparada para o meu fim."),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
+        });
+        
+        steps.Add(new DialogCutsceneSteps
+        {
+            caption = Wrap("E então Alma, você aceita seu destino? Tomar meu lugar como morte e dar início a nova era?"),
+            hasCaptionFadeIn = true,
+            durationInMillis = 3500,
+            spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
         });
 
         _totalMs = 0;
@@ -59,6 +132,19 @@ public class Scene_final : Scene
 
         _remainingMs = _totalMs;
         _dialog.Start();
+
+        // Toca a música ambiente em loop. O volume é definido aqui porque a cena anterior
+        // (vagão assombrado) deixa o volume do MediaPlayer reduzido. Se o som estiver
+        // mudo (tecla M), o setter ignora e continua mudo.
+        Core.Audio.SongVolume = MUSIC_VOLUME;
+        Core.Audio.PlaySong(_music);
+    }
+
+    public override void UnloadContent()
+    {
+        // Para a música ao sair da cena final (volta ao título).
+        MediaPlayer.Stop();
+        base.UnloadContent();
     }
 
     public override void Update(GameTime gameTime)

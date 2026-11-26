@@ -78,6 +78,14 @@ public class Scene_caldeirao : Scene, ISaveableScene
     public override void Initialize()
     {
         base.Initialize();
+
+        // Primeira ida à Caldeira (pesagem da alma): a partir daqui a porta do vagão
+        // assombrado fica liberada na recepção. Só avança de FalouComVigia; nunca volta atrás.
+        if (GameSession.Stage == StoryStage.FalouComVigia)
+        {
+            GameSession.Stage = StoryStage.Julgada;
+        }
+
         float worldWidth = _background_RECEPCAO.Width;
         _playerX = _recepcaoExitX + 100f;
         _player = _playerRight;

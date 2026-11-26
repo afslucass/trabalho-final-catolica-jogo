@@ -723,9 +723,10 @@ public class Scene_recepcao : Scene, ISaveableScene
                           MathF.Abs(_playerX - _necklaceX) < ITEM_RANGE;
 
         // The right arch (Boiler) unlocks after speaking to the Watcher; the
-        // left arch (Haunted Train) unlocks after the Watcher guides Alma there.
+        // left arch (Haunted Train) stays locked until Alma has gone to the Boiler
+        // for the first time (Scene_caldeirao sets the stage to Julgada).
         _rightExitOpen = GameSession.Stage >= StoryStage.FalouComVigia;
-        _leftExitOpen = GameSession.Stage >= StoryStage.FalouComVigia;
+        _leftExitOpen = GameSession.Stage >= StoryStage.Julgada;
 
         if (_activeTalk == null && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
         {

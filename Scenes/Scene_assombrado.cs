@@ -84,8 +84,10 @@ public class Scene_assombrado : Scene, ISaveableScene
     // A cada volta ao vagão sem o item necessário (cenário 1) ganha RAPOSO_SPEED_PER_RETRY,
     // até o limite RAPOSO_MAX_SPEED (abaixo do sprint do jogador, 720 px/s, para sempre
     // ser possível fugir).
+    // Tentativa 1 = 225 px/s, 2 = 350 px/s, 3 = 475 px/s (já mais rápido que o jogador
+    // andando, 450 px/s), 4 = 600 px/s e da 5ª em diante 650 px/s (limite).
     private const float RAPOSO_BASE_SPEED = PLAYER_SPEED * 0.5f; // 225 px/s
-    private const float RAPOSO_SPEED_PER_RETRY = 90f;
+    private const float RAPOSO_SPEED_PER_RETRY = 125f;
     private const float RAPOSO_MAX_SPEED = 650f;
     private const float CATCH_DISTANCE = 100f; // Distância em que o Estranho pega o jogador.
 
@@ -155,6 +157,8 @@ public class Scene_assombrado : Scene, ISaveableScene
     public override void Initialize()
     {
         base.Initialize();
+
+        // Som de porta ao entrar no vagão assombrado.
 
         _hasTalkedToRaposo = GameSession.HauntedPuzzleStarted;
         _hasFullDisguise = GameItems.HasFullDisguise;
@@ -544,6 +548,7 @@ public class Scene_assombrado : Scene, ISaveableScene
             }
             else if (_isAtNextDoor)
             {
+                // Som de porta ao sair do vagão assombrado (a Scene_final não toca o som).
                 Core.ChangeScene(new Scene_final());
                 return;
             }
