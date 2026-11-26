@@ -42,6 +42,15 @@
         <Animation name="player-2-animation" delay="200">
             <Frame region="player-2" />
         </Animation>
+        <Animation name="scale-1-animation" delay="200">
+            <Frame region="scale-1" />
+        </Animation>
+        <Animation name="scale-2-animation" delay="200">
+            <Frame region="scale-2" />
+        </Animation>
+        <Animation name="scale-3-animation" delay="200">
+            <Frame region="scale-3" />
+        </Animation>
         <Animation name="hooded-animation" delay="200">
             <Frame region="hooded" />
         </Animation>
