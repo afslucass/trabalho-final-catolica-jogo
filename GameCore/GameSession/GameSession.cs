@@ -69,6 +69,7 @@ public static class GameSession
     // Em que ponto da história o jogador está (libera portas e muda os diálogos).
     public static StoryStage Stage { get; set; } = StoryStage.Intro;
 
+    public static bool VigiaDesbloqueouSegundoSprite { get; set; } = false;
     // Quantas vezes o jogador tentou sair do vagão assombrado sem a máscara
     // (cabeça da boneca). Cada vez aumenta a velocidade do Raposo na sala.
     public static int HauntedRetries { get; set; } = 0;
@@ -134,6 +135,7 @@ public static class GameSession
         HauntedPuzzleStarted = false;
         Checkpoint = null;
         IntroCutscenePlayed = false;
+        VigiaDesbloqueouSegundoSprite = false;
         IntroSeen = false;
     }
     public static SaveData CreateSaveData(string sceneId, Vector2 playerPosition)

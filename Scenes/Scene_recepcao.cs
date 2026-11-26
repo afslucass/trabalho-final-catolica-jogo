@@ -94,8 +94,17 @@ public class Scene_recepcao : Scene, ISaveableScene
     private const float VIGIA_BOB_SPEED = 9f;
     private float _vigiaWalkTime;
     private float _vigiaBobOffset;
-
     private readonly bool _vigiaCanFollow;
+
+    private AnimatedSprite _justica;
+    private float _justicaX;
+
+    private const string JUSTICA_ANIMATION = "doctor-animation";
+
+    private const float JUSTICA_FOLLOW_DISTANCE = 180f;
+    private const float JUSTICA_FOLLOW_SPEED = 800f;
+    private bool _justicaVisivel;
+    private bool _justicaAcompanhando;
 
     // ---------- Exits ----------
     // The two background arches: the left one leads to the Haunted Train,
@@ -187,8 +196,13 @@ public class Scene_recepcao : Scene, ISaveableScene
         switch (_spawn)
         {
             case RecepcaoSpawn.FromCaldeira:
-                _playerX = _rightExitX - 100f;
+                _playerX = _rightExitX - 350f;
                 _player = _playerLeft;
+
+                _justicaX = _rightExitX - 100f;
+
+                _justicaAcompanhando = GameSession.Stage == StoryStage.Julgada;
+                _justicaVisivel = _justicaAcompanhando;
                 break;
 
             case RecepcaoSpawn.FromAssombrado:
@@ -239,11 +253,12 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         _vigiaItch = charactersAtlas.CreateAnimatedSprite(VIGIA_ITCH_ANIMATION);
         _vigiaItch.Scale = Vector2.One;
-
         _vigiaPostX = _background.Width * 0.5f;
         _vigiaX = _vigiaPostX;
         _leftExitX = _background.Width * LEFT_EXIT_RATIO;
         _rightExitX = _background.Width * RIGHT_EXIT_RATIO;
+        _justica = charactersAtlas.CreateAnimatedSprite(JUSTICA_ANIMATION);
+        _justica.Scale = Vector2.One;
 
         _necklaceSprite = charactersAtlas.CreateSprite(GameItems.NecklaceIcon);
         _necklaceSprite.Scale = Vector2.One;
@@ -511,10 +526,9 @@ public class Scene_recepcao : Scene, ISaveableScene
             // Primeiro checkpoint do jogo: o Vigia coloca Alma no vagão assombrado.
             GameSession.SaveCheckpoint(_playerX);
         });
-
         // ----- Com a máscara: o Vigia confunde Alma com um ajudante do Estranho -----
         List<DialogCutsceneSteps> maskSteps = new();
-
+        
         maskSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Coça… Coça tanto…"),
@@ -650,6 +664,7 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         _player.Update(gameTime);
         _vigia.Update(gameTime);
+        _justica?.Update(gameTime);
 
         // Audio input remains active, but player movement is disabled during dialogs.
         CheckAudioInput();
@@ -687,9 +702,10 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         // O Vigia acompanha Alma (estágio FalouComVigia) ou volta ao posto.
         UpdateVigia(dt);
+        UpdateJustica(dt);
 
         // Turns the Watcher toward the player's position.
-        if (_spawn == RecepcaoSpawn.FromAssombrado)
+        if (GameSession.VigiaDesbloqueouSegundoSprite)
         {
         _vigia = _vigiaItch;
         }
@@ -711,9 +727,18 @@ public class Scene_recepcao : Scene, ISaveableScene
                 finished.OnFinished?.Invoke();
             }
         }
+        if (_justicaAcompanhando &&
+            _activeTalk == null &&
+            MathF.Abs(_playerX - _vigiaX) < TALK_RANGE)
+        {
+            _justicaAcompanhando = false;
+            StartTalk(_secondTalk);
+        }
 
         // Checks the player's proximity to the Watcher and exit arches.
-        _canTalk = _activeTalk == null && MathF.Abs(_playerX - _vigiaX) < TALK_RANGE;
+        _canTalk = !_justicaAcompanhando &&
+           _activeTalk == null &&
+           MathF.Abs(_playerX - _vigiaX) < TALK_RANGE;
         _isAtLeftExit = MathF.Abs(_playerX - _leftExitX) < EXIT_RANGE;
         _isAtRightExit = MathF.Abs(_playerX - _rightExitX) < EXIT_RANGE;
 
@@ -818,6 +843,21 @@ public class Scene_recepcao : Scene, ISaveableScene
             _vigiaBobOffset = 0f;
         }
     }
+        private void UpdateJustica(float dt)
+        {
+            if (!_justicaAcompanhando || _activeTalk != null)
+        return;
+
+            float targetX = _playerX + JUSTICA_FOLLOW_DISTANCE;
+
+            if (_justicaX > targetX)
+        {
+            float distance = _justicaX - targetX;
+            float step = MathF.Min(JUSTICA_FOLLOW_SPEED * dt, distance);
+
+            _justicaX -= step;
+        }
+        }
 
     // Moves the player horizontally only; vertical movement is not supported.
     private void MovePlayer(float dt)
@@ -925,7 +965,6 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         _background.Draw(Core.SpriteBatch, Vector2.Zero);
 
-        // Item 2 do disfarce (aparece depois de iniciar o puzzle, até ser coletado).
         if (GameSession.HauntedPuzzleStarted && !GameSession.Inventory.Has(GameItems.NecklaceId))
         {
             _necklaceSprite.Draw(Core.SpriteBatch,
@@ -934,10 +973,20 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         // Sprites are drawn from the top-left corner, keeping their feet aligned at GROUND_Y.
         // O Vigia ganha um pulinho (_vigiaBobOffset) enquanto anda.
+        if (_justicaVisivel)
+        {
+            _justica.Draw(
+            Core.SpriteBatch,
+            new Vector2(
+            _justicaX - _justica.Width * 0.1f,
+            GROUND_Y - _justica.Height
+        )
+        );
+        }
         _vigia.Draw(Core.SpriteBatch,
             new Vector2(_vigiaX - _vigia.Width * 0.5f, GROUND_Y - _vigia.Height + _vigiaBobOffset));
         _player.Draw(Core.SpriteBatch, new Vector2(_playerX - _player.Width * 0.5f, GROUND_Y - _player.Height));
-
+        
         Core.SpriteBatch.End();
 
         // Screen / UI layer
