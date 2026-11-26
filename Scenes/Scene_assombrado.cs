@@ -34,7 +34,7 @@ namespace TestGame.Scenes;
 /// </summary>
 public class Scene_assombrado : Scene, ISaveableScene
 {
-    public string SaveId => "estranho";
+    public string SaveId => "assombrado";
 
     private Sprite _background_RECEPCAO;
     private float _cameraX;

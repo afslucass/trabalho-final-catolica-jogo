@@ -611,7 +611,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             if (p > 0)
             {
                 result.Append('\n');
-            }
+            }   
 
             float lineWidth = 0f;
             string[] words = paragraphs[p].Split(' ', StringSplitOptions.RemoveEmptyEntries);

@@ -18,7 +18,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
 {
     private Sprite _background_RECEPCAO;
     private float _cameraX;
-    public string SaveId => "caldeira";
+    public string SaveId => "caldeirao";
 
 
     // Character foot position, measured in background pixels.
@@ -224,7 +224,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
         _doctorDialog1 = new DialogCutsceneController(
             doctorSteps,
-            Color.White,
+            Alloy,
             _font,
             Core.GraphicsDevice
         );
@@ -265,7 +265,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
         _doctorDialog2 = new DialogCutsceneController(
             secondSteps,
-            Color.White,
+            Alloy,
             _font,
             Core.GraphicsDevice
         );
@@ -542,7 +542,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
                 _font,
                 PRESS_E_COLLECT_ITEM,
                 _pressEInterectPos,
-                Color.White,
+                Alloy,
                 0.0f,
                 _font.MeasureString(PRESS_E_COLLECT_ITEM) * 0.5f,
                 1.0f,
@@ -556,7 +556,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
                 _font,
                 PRESS_E_INTERECT,
                 _pressEInterectPos,
-                Color.White,
+                Alloy,
                 0.0f,
                 _font.MeasureString(PRESS_E_INTERECT) * 0.5f,
                 1.0f,
@@ -570,7 +570,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
                 _font,
                 PRESS_E_TALK,
                 _pressEInterectPos,
-                Color.White,
+                Alloy,
                 0.0f,
                 _font.MeasureString(PRESS_E_TALK) * 0.5f,
                 1.0f,

@@ -19,7 +19,7 @@ public class Scene_final : Scene
 {
     private const string BACK_TEXT = "Press Enter para voltar ao início";
     private const float DIALOG_MAX_WIDTH_RATIO = 0.8f;
-
+    Color Alloy = new Color(201, 149, 0);
     private Texture2D _art;
     private SpriteFont _font;
     private DialogCutsceneController _dialog;

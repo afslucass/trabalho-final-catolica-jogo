@@ -134,9 +134,11 @@ public static class GameSession
         HauntedPuzzleStarted = false;
         Checkpoint = null;
         IntroCutscenePlayed = false;
+        IntroSeen = false;
     }
     public static SaveData CreateSaveData(string sceneId, Vector2 playerPosition)
     {
+        
         SaveData data = new()
         {
             SceneId = sceneId,
@@ -146,7 +148,8 @@ public static class GameSession
             Stage = Stage,
             HauntedRetries = HauntedRetries,
             HauntedPuzzleStarted = HauntedPuzzleStarted,
-            IntroCutscenePlayed = IntroCutscenePlayed
+            IntroCutscenePlayed = IntroCutscenePlayed,
+            IntroSeen = IntroSeen
         };
 
         foreach (var item in Inventory.Items)
@@ -162,6 +165,8 @@ public static class GameSession
         Stage = data.Stage;
         HauntedRetries = data.HauntedRetries;
         HauntedPuzzleStarted = data.HauntedPuzzleStarted;
+        IntroCutscenePlayed = data.IntroCutscenePlayed;
+        IntroSeen = data.IntroSeen;
 
         // Mantém a mesma instância do inventário (cenas podem estar guardando a referência).
         Inventory.Clear();

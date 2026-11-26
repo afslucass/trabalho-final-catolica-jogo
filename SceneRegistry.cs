@@ -23,6 +23,9 @@ public static class SceneRegistry
 
             case "caldeirao":
                 return new Scene_caldeirao();
+                
+            case "assombrado":
+                return new Scene_assombrado();
         
             default:
                 // Cena desconhecida (por exemplo, um save de uma sala que ainda não
