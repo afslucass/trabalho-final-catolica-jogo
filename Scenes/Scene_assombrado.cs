@@ -92,7 +92,7 @@ public class Scene_assombrado : Scene, ISaveableScene
     private const float CATCH_DISTANCE = 100f; // Distância em que o Estranho pega o jogador.
 
     private float RaposoSpeed => MathF.Min(
-        RAPOSO_BASE_SPEED + GameSession.HauntedRetries * RAPOSO_SPEED_PER_RETRY,
+        RAPOSO_BASE_SPEED + GameSession.HauntedRetries * RAPOSO_SPEED_PER_RETRY * 2,
         RAPOSO_MAX_SPEED);
 
     // Tempo de espera entre o fim da conversa (ou o nascimento na sala) e o Estranho
