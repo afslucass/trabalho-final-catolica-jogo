@@ -554,8 +554,7 @@ public class Scene_assombrado : Scene, ISaveableScene
             }
             else if (_isAtExit)
             {
-                // Sair sem a máscara é permitido: quem barra o jogador é o Vigia, na
-                // recepção (cenário 1), que o traz de volta para cá.
+                
                 GameSession.VigiaDesbloqueouSegundoSprite = true;
                 Core.ChangeScene(new Scene_recepcao(RecepcaoSpawn.FromAssombrado));
                 return;

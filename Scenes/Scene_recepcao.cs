@@ -528,7 +528,7 @@ public class Scene_recepcao : Scene, ISaveableScene
         });
         // ----- Com a máscara: o Vigia confunde Alma com um ajudante do Estranho -----
         List<DialogCutsceneSteps> maskSteps = new();
-        
+
         maskSteps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Coça… Coça tanto…"),
@@ -771,13 +771,6 @@ public class Scene_recepcao : Scene, ISaveableScene
             }
             else if (_isAtRightExit && _rightExitOpen)
             {
-                // Cenário 1: para acessar a Caldeira é necessário o item 2.
-                if (GameSession.HauntedPuzzleStarted && !GameSession.Inventory.Has(GameItems.NecklaceId))
-                {
-                    StartCaught();
-                    return;
-                }
-
                 Core.ChangeScene(new Scene_caldeirao());
                 return;
             }
