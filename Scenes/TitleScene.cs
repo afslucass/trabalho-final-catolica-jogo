@@ -1,7 +1,10 @@
+using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using GameCore;
+using GameCore.Save;
 using GameCore.Scenes;
 
 namespace TestGame.Scenes;
@@ -10,7 +13,15 @@ public class TitleScene : Scene
     {
     private const string DUNGEON_TEXT = "";
     private const string SLIME_TEXT = "beyond death";
-    private const string PRESS_ENTER_TEXT = "Press Enter To Start";
+
+    // Opções do menu.
+    private const string CONTINUE_TEXT = "Continuar";
+    private const string NEW_GAME_TEXT = "Novo jogo";
+    private const string LOAD_ERROR_TEXT = "Nao foi possivel carregar o save";
+
+    // Posição vertical da primeira opção do menu e tempo que a mensagem de erro fica na tela.
+    private const float MENU_TOP = 560f;
+    private const double MESSAGE_MS = 2500;
 
     // The font to use to render normal text.
     private SpriteFont _font;
@@ -30,11 +41,16 @@ public class TitleScene : Scene
     // The origin to set for the slime text.
     private Vector2 _slimeTextOrigin;
 
-    // The position to draw the press enter text at.
-    private Vector2 _pressEnterPos;
+    // Menu: lista de opções (texto e ação) e a opção selecionada.
+    private readonly List<(string Label, Action Action)> _options = new();
+    private int _selected;
 
-    // The origin to set for the press enter text when drawing it.
-    private Vector2 _pressEnterOrigin;
+    // Se o save existe mas não pôde ser carregado (arquivo corrompido, por exemplo),
+    // o "Continuar" some do menu até o jogo ser reaberto.
+    private bool _saveUnusable;
+
+    // Tempo restante da mensagem de erro de carregamento.
+    private double _messageRemainingMs;
 
     public override bool CanPause => false;
 
@@ -57,10 +73,8 @@ public class TitleScene : Scene
         _slimeTextPos = new Vector2(Core.GraphicsDevice.PresentationParameters.BackBufferWidth / 2 + 24, 207);
         _slimeTextOrigin = size * 0.5f;
 
-        // Set the position and origin for the press enter text.
-        size = _font.MeasureString(PRESS_ENTER_TEXT);
-        _pressEnterPos = new Vector2(Core.GraphicsDevice.PresentationParameters.BackBufferWidth / 2, 620);
-        _pressEnterOrigin = size * 0.5f;
+        // Monta o menu (o "Continuar" só aparece se existir um save).
+        BuildOptions();
     }
 
     public override void LoadContent()
@@ -72,12 +86,71 @@ public class TitleScene : Scene
         _font5x = Content.Load<SpriteFont>("fonts/04B_30_5x");
     }
 
+    // Monta a lista de opções. Se existe um save utilizável, "Continuar" vem primeiro
+    // (e já começa selecionado); senão, só "Novo jogo".
+    private void BuildOptions()
+    {
+        _options.Clear();
+
+        if (!_saveUnusable && SaveManager.HasSave())
+        {
+            _options.Add((CONTINUE_TEXT, OnContinue));
+        }
+
+        _options.Add((NEW_GAME_TEXT, OnNewGame));
+
+        _selected = 0;
+    }
+
+    // Carrega o save e abre a cena em que o jogador estava.
+    // O SceneRegistry.ContinueGame já troca de cena sozinho quando dá certo.
+    private void OnContinue()
+    {
+        if (SceneRegistry.ContinueGame())
+        {
+            return;
+        }
+
+        // Falhou (o arquivo sumiu, está corrompido ou é de uma versão mais nova do jogo):
+        // esconde o "Continuar" e avisa o jogador. O jogo continua normalmente.
+        _saveUnusable = true;
+        BuildOptions();
+        _messageRemainingMs = MESSAGE_MS;
+    }
+
+    // Começa um jogo novo. O GameSession é estático e sobrevive a uma volta ao título,
+    // então é preciso zerá-lo aqui para não herdar itens e estágio da partida anterior.
+    // O save antigo não é apagado: ele só é substituído quando o jogador salvar de novo.
+    private void OnNewGame()
+    {
+        GameSession.Reset();
+        Core.ChangeScene(new Scene_recepcao());
+    }
+
     public override void Update(GameTime gameTime)
     {
-        // If the user presses enter, switch to the game scene.
-        if (Core.Input.Keyboard.WasKeyJustPressed(Keys.Enter) || Core.Input.Keyboard.WasKeyJustPressed(Keys.F))
+        if (_messageRemainingMs > 0)
         {
-            Core.ChangeScene(new Scene_recepcao());
+            _messageRemainingMs -= gameTime.ElapsedGameTime.TotalMilliseconds;
+        }
+
+        var keyboard = Core.Input.Keyboard;
+
+        // Setas ou W/S movem a seleção.
+        if (keyboard.WasKeyJustPressed(Keys.Up) || keyboard.WasKeyJustPressed(Keys.W))
+        {
+            _selected = (_selected - 1 + _options.Count) % _options.Count;
+        }
+
+        if (keyboard.WasKeyJustPressed(Keys.Down) || keyboard.WasKeyJustPressed(Keys.S))
+        {
+            _selected = (_selected + 1) % _options.Count;
+        }
+
+        // Enter (ou F) confirma a opção selecionada.
+        if (keyboard.WasKeyJustPressed(Keys.Enter) || keyboard.WasKeyJustPressed(Keys.F))
+        {
+            _options[_selected].Action();
         }
     }
 
@@ -105,8 +178,38 @@ public class TitleScene : Scene
         // Draw the Slime text on top of that at its original position.
         Core.SpriteBatch.DrawString(_font5x, SLIME_TEXT, _slimeTextPos, Color.White, 0.0f, _slimeTextOrigin, 1.0f, SpriteEffects.None, 1.0f);
 
-        // Draw the press enter text.
-        Core.SpriteBatch.DrawString(_font, PRESS_ENTER_TEXT, _pressEnterPos, Color.White, 0.0f, _pressEnterOrigin, 1.0f, SpriteEffects.None, 0.0f);
+        // Desenha o menu: opções centralizadas, a selecionada em amarelo e com "> ".
+        float centerX = Core.GraphicsDevice.PresentationParameters.BackBufferWidth / 2f;
+        float y = MENU_TOP;
+        float spacing = _font.LineSpacing + 20;
+
+        for (int i = 0; i < _options.Count; i++)
+        {
+            bool isSelected = i == _selected;
+            string text = isSelected ? $"> {_options[i].Label}" : _options[i].Label;
+            Vector2 size = _font.MeasureString(text);
+
+            Core.SpriteBatch.DrawString(
+                _font,
+                text,
+                new Vector2(centerX - size.X / 2f, y),
+                isSelected ? Color.Yellow : Color.White
+            );
+
+            y += spacing;
+        }
+
+        // Mensagem de erro, logo abaixo da última opção.
+        if (_messageRemainingMs > 0)
+        {
+            Vector2 messageSize = _font.MeasureString(LOAD_ERROR_TEXT);
+            Core.SpriteBatch.DrawString(
+                _font,
+                LOAD_ERROR_TEXT,
+                new Vector2(centerX - messageSize.X / 2f, y + 20),
+                Color.OrangeRed
+            );
+        }
 
         // Always end the sprite batch when finished.
         Core.SpriteBatch.End();

@@ -17,7 +17,8 @@ public class SaveData
     public string SceneId { get; set; } = "";
     public float PlayerX { get; set; }
     public float PlayerY { get; set; }
-
+    public bool IntroCutscenePlayed { get; set; } = true;
+    public bool IntroSeen { get; set; } = true;
     public int Score { get; set; }
 
     // Em que ponto da história o jogador está. É gravado como texto

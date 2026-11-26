@@ -58,6 +58,7 @@ public static class GameItems
 /// </summary>
 public static class GameSession
 {
+    public static bool IntroSeen { get; set; } = false;
     // Armazena a pontuação global do jogador entre todas as telas
     public static int Score { get; set; } = 0;
     public static bool IntroCutscenePlayed { get; set; } = false;
@@ -144,14 +145,15 @@ public static class GameSession
             Score = Score,
             Stage = Stage,
             HauntedRetries = HauntedRetries,
-            HauntedPuzzleStarted = HauntedPuzzleStarted
+            HauntedPuzzleStarted = HauntedPuzzleStarted,
+            IntroCutscenePlayed = IntroCutscenePlayed
         };
 
         foreach (var item in Inventory.Items)
         {
             data.Items[item.Key] = item.Value;
         }
-
+    
         return data;
     }
     public static void LoadFrom(SaveData data)

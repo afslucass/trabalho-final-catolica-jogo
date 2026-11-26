@@ -13,6 +13,8 @@ using GameCore.CustomMouseCursor;
 using GameCore.Input;
 using GameCore.Inventory;
 using GameCore.DialogCutscene;
+using GameCore.Save;
+
 
 namespace TestGame.Scenes;
 
@@ -29,12 +31,16 @@ namespace TestGame.Scenes;
 ///     (o momento em que o Vigia colocou Alma no vagão).
 ///  6. Com o disfarce completo (3 itens) o Estranho deixa o jogador passar para o último vagão.
 /// </summary>
-public class Scene_assombrado : Scene
+public class Scene_assombrado : Scene, ISaveableScene
 {
+    public string SaveId => "estranho";
+
     private Sprite _background_RECEPCAO;
     private float _cameraX;
 
     // Character foot position, measured in background pixels.
+
+    public Vector2 SavePlayerPosition => new Vector2(_playerX, GROUND_Y);
     private const float GROUND_Y = 1010f;
 
     // ---------- Player ----------

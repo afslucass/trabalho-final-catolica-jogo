@@ -10,17 +10,22 @@ using GameCore.Camera;
 using GameCore.CustomMouseCursor;
 using GameCore.Input;
 using GameCore.Inventory;
+using GameCore.Save;
 
 namespace TestGame.Scenes;
 
-public class Scene_caldeirao : Scene
+public class Scene_caldeirao : Scene, ISaveableScene
 {
     private Sprite _background_RECEPCAO;
     private float _cameraX;
+    public string SaveId => "caldeira";
+
 
     // Character foot position, measured in background pixels.
     // The floor (bottom black strip) spans y=955 to y=1080.
     private const float GROUND_Y = 1010f;
+    public Vector2 SavePlayerPosition => new Vector2(_playerX, GROUND_Y);
+
 
     // ---------- Player ----------
     // Two mirrored sprites, one facing each direction.

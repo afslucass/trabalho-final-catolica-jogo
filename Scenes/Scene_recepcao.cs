@@ -95,9 +95,6 @@ public class Scene_recepcao : Scene, ISaveableScene
     private float _vigiaWalkTime;
     private float _vigiaBobOffset;
 
-    // O Vigia só acompanha Alma na primeira passagem pela recepção (chegando da
-    // introdução). Ao voltar da Caldeira ou do vagão assombrado, ou ao carregar um
-    // save, ele já nasce no posto e fica parado.
     private readonly bool _vigiaCanFollow;
 
     // ---------- Exits ----------
@@ -263,7 +260,7 @@ public class Scene_recepcao : Scene, ISaveableScene
         // Add accented characters to the .spritefont CharacterRegion to render them correctly.
         _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
 
-        
+
         List<Step> steps = new List<Step>();
         steps.Add(new Step
         {
@@ -359,25 +356,19 @@ public class Scene_recepcao : Scene, ISaveableScene
         _showIntroCutscene = !GameSession.IntroCutscenePlayed;
 
 
-cutscene = new CutsceneController(
-    steps,
-    Color.Black,
-    Alloy,
-    _font,
-    Core.GraphicsDevice
-);
+        cutscene = new CutsceneController(
+            steps,
+            Color.Black,
+            Alloy,
+            _font,
+            Core.GraphicsDevice
+        );
 
-if (_showIntroCutscene)
-{
-    cutscene.Start();
-    GameSession.IntroCutscenePlayed = true;
-}
-
-if (!GameSession.IntroCutscenePlayed)
-{
-    cutscene.Start();
-    GameSession.IntroCutscenePlayed = true;
-}
+        if (!_startX.HasValue && (_showIntroCutscene || !GameSession.IntroCutscenePlayed))
+        {
+            cutscene.Start();
+            GameSession.IntroCutscenePlayed = true;
+        }
 
 
         cursorAtlas.SetCursor("cheese");
@@ -700,11 +691,11 @@ if (!GameSession.IntroCutscenePlayed)
         // Turns the Watcher toward the player's position.
         if (GameSession.Stage >= StoryStage.VagaoAssombrado)
         {
-         _vigia = _vigiaItch;
+            _vigia = _vigiaItch;
         }
         else
         {
-        _vigia = _playerX < _vigiaX ? _vigiaLeft : _vigiaRight;
+            _vigia = _playerX < _vigiaX ? _vigiaLeft : _vigiaRight;
         }
 
         // Updates the active dialog timer and ends the dialog when it reaches zero.
@@ -1015,7 +1006,7 @@ if (!GameSession.IntroCutscenePlayed)
         _idleTalk.Dialog.Draw(Core.SpriteBatch, gameTime);
         if (!GameSession.IntroCutscenePlayed || _showIntroCutscene)
         {
-        cutscene.Draw(Core.SpriteBatch, gameTime);
+            cutscene.Draw(Core.SpriteBatch, gameTime);
         }
         Core.SpriteBatch.End();
 
