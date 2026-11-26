@@ -159,7 +159,7 @@ public class Scene_recepcao : Scene, ISaveableScene
     private Song _introSong;
     private const float INTRO_VOLUME = 0.45f;
     private Song _ambienceSong;
-    private const float AMBIENCE_VOLUME = 0.45f;
+    private const float AMBIENCE_VOLUME = 1.0f;
     private bool _introMusicFinished;
 
     // ---------- Puzzle do Estranho ----------
@@ -296,7 +296,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = true,
             hasTextTransition = true,
-            durationInMillis = 2000,
+            durationInMillis = 5000,
         });
         steps.Add(new Step
         {
@@ -314,7 +314,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 3000,
+            durationInMillis = 5000,
         });
         steps.Add(new Step
         {
@@ -323,7 +323,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 3000,
+            durationInMillis = 5000,
         });
         steps.Add(new Step
         {
@@ -332,7 +332,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 3000,
+            durationInMillis = 5000,
         });
         steps.Add(new Step
         {
@@ -341,7 +341,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 3000,
+            durationInMillis = 5000,
         });
         steps.Add(new Step
         {
@@ -350,7 +350,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 3000,
+            durationInMillis = 5000,
         });
         steps.Add(new Step
         {
@@ -359,7 +359,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 3000,
+            durationInMillis = 5000,
         });
         steps.Add(new Step
         {
@@ -368,7 +368,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 3000,
+            durationInMillis = 5000,
         });
         steps.Add(new Step
         {
@@ -377,7 +377,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 3000,
+            durationInMillis = 5000,
         });
 
         _showIntroCutscene = !GameSession.IntroCutscenePlayed;
@@ -395,10 +395,8 @@ public class Scene_recepcao : Scene, ISaveableScene
         {
             MediaPlayer.Stop();
             MediaPlayer.IsRepeating = true;
-            MediaPlayer.Volume = MathHelper.Clamp(
-            Core.Audio.SongVolume * INTRO_VOLUME, 0f, 1f);
+            Core.Audio.SetSongVolumeScale(AMBIENCE_VOLUME);
             MediaPlayer.Play(_introSong);
-
             cutscene.Start();
             GameSession.IntroCutscenePlayed = true;
         }

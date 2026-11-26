@@ -11,7 +11,10 @@ public class AudioController : IDisposable
     private readonly List<SoundEffectInstance> _activeSoundEffectInstances;
 
     // Tracks the volume for song playback when muting and unmuting.
-    private float _previousSongVolume;
+    private float _songVolume = 1.0f;
+
+// Multiplicador aplicado pela música/cena atual.
+    private float _songVolumeScale = 1.0f;
 
     // Tracks the volume for sound effect playback when muting and unmuting.
     private float _previousSoundEffectVolume;
@@ -30,24 +33,21 @@ public class AudioController : IDisposable
     /// </remarks>
     public float SongVolume
     {
-        get
-        {
-            if(IsMuted)
-            {
-                return 0.0f;
-            }
+    get
+    {
+        if (IsMuted)
+            return 0.0f;
 
-            return MediaPlayer.Volume;
-        }
-        set
-        {
-            if(IsMuted)
-            {
-                return;
-            }
+        return _songVolume;
+    }
+    set
+    {
+        if (IsMuted)
+            return;
 
-            MediaPlayer.Volume = Math.Clamp(value, 0.0f, 1.0f);
-        }
+        _songVolume = Math.Clamp(value, 0.0f, 1.0f);
+        ApplySongVolume();
+    }
     }
 
     /// <summary>
@@ -88,8 +88,31 @@ public class AudioController : IDisposable
     /// Creates a new audio controller instance.
     /// </summary>
     public AudioController()
+    
     {
         _activeSoundEffectInstances = new List<SoundEffectInstance>();
+        
+    }
+    public void SetSongVolumeScale(float scale)
+    {
+    _songVolumeScale = Math.Clamp(scale, 0.0f, 1.0f);
+    ApplySongVolume();
+    }
+
+
+    private void ApplySongVolume()
+    {
+    if (IsMuted)
+    {
+        MediaPlayer.Volume = 0.0f;
+        return;
+    }
+
+    MediaPlayer.Volume = Math.Clamp(
+        _songVolume * _songVolumeScale,
+        0.0f,
+        1.0f
+    );
     }
 
     // Finalizer called when object is collected by the garbage collector.
@@ -208,15 +231,12 @@ public class AudioController : IDisposable
     /// </summary>
     public void MuteAudio()
     {
-        // Store the volume so they can be restored during UnmuteAudio
-        _previousSongVolume = MediaPlayer.Volume;
-        _previousSoundEffectVolume = SoundEffect.MasterVolume;
+    _previousSoundEffectVolume = SoundEffect.MasterVolume;
 
-        // Set all volumes to 0
-        MediaPlayer.Volume = 0.0f;
-        SoundEffect.MasterVolume = 0.0f;
+    IsMuted = true;
 
-        IsMuted = true;
+    MediaPlayer.Volume = 0.0f;
+    SoundEffect.MasterVolume = 0.0f;
     }
 
     /// <summary>
@@ -224,11 +244,11 @@ public class AudioController : IDisposable
     /// </summary>
     public void UnmuteAudio()
     {
-        // Restore the previous volume values.
-        MediaPlayer.Volume = _previousSongVolume;
-        SoundEffect.MasterVolume = _previousSoundEffectVolume;
+    IsMuted = false;
 
-        IsMuted = false;
+    ApplySongVolume();
+
+    SoundEffect.MasterVolume = _previousSoundEffectVolume;
     }
 
     /// <summary>

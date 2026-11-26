@@ -290,7 +290,7 @@ public class Scene_assombrado : Scene, ISaveableScene
 
         MediaPlayer.Stop();
         MediaPlayer.IsRepeating = true;
-        MediaPlayer.Volume = MathHelper.Clamp(Core.Audio.SongVolume * AMBIENCE_VOLUME, 0f, 1f);
+        Core.Audio.SetSongVolumeScale(AMBIENCE_VOLUME);
         MediaPlayer.Play(_ambienceSong);
     }
 
@@ -643,8 +643,7 @@ public class Scene_assombrado : Scene, ISaveableScene
     // Mantém os volumes dos dois tipos de áudio sincronizados com os controles + e -.
     private void UpdateSceneAudioVolumes()
     {
-        MediaPlayer.Volume = MathHelper.Clamp(Core.Audio.SongVolume * AMBIENCE_VOLUME, 0f, 1f);
-
+        Core.Audio.SetSongVolumeScale(AMBIENCE_VOLUME);
         if (_chaseInstance != null)
             _chaseInstance.Volume = MathHelper.Clamp(Core.Audio.SoundEffectVolume * CHASE_VOLUME, 0f, 1f);
     }
