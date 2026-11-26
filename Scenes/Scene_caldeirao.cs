@@ -1,15 +1,15 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using GameCore;
+using GameCore.CustomMouseCursor;
+using GameCore.DialogCutscene;
 using GameCore.Graphics;
 using GameCore.Scenes;
-using GameCore.Camera;
-using GameCore.CustomMouseCursor;
-using GameCore.Input;
-using GameCore.Inventory;
+using GameCore.Cutscene;
 using GameCore.Save;
 
 namespace TestGame.Scenes;
@@ -48,15 +48,73 @@ public class Scene_caldeirao : Scene, ISaveableScene
     private const string PLAYER_LEFT_ANIMATION = "player-2-animation";
     private const string PLAYER_RIGHT_ANIMATION = "player-1-animation";
 
-    // ---------- Watcher ----------
-    private AnimatedSprite _raposo;
-    private float _raposoX;
+    // ---------- Doctor ----------
+    private AnimatedSprite _doctor;
+    private float _doctorX;
 
-    private const string RAPOSO_ANIMATION = "hooded-animation";
+    private const string DOCTOR_ANIMATION = "doctor-animation";
 
     private SpriteFont _font;
+    // Balence
+    private AnimatedSprite _balence1;
+    private AnimatedSprite _balence2;
+    private AnimatedSprite _balence3;
+    private float _balenceX;
+    private const string BALENCE_ANIMATION1 = "scale-1-animation";
+    private const string BALENCE_ANIMATION2 = "scale-2-animation";
+    private const string BALENCE_ANIMATION3 = "scale-3-animation";
 
     Color Alloy = new Color(201, 149, 0);
+
+    // ---------- Dialogue ----------
+    private DialogCutsceneController _doctorDialog1;
+    private DialogCutsceneController _doctorDialog2;
+    private DialogCutsceneController _doctorDialog3;
+    private enum DoctorSequence
+    {
+        None,
+        FirstDialog,
+        MovingToBalance,
+        RisingOnBalance,
+        SecondDialog,
+        ThirdDialog
+    }
+
+    private DoctorSequence _doctorSequence = DoctorSequence.None;
+
+    // Posição X onde o personagem vai parar, depois da balança.
+    private float _balanceTargetX;
+
+    // Posição inicial da caminhada.
+    private float _balanceStartX;
+
+    // Deslocamento vertical do personagem durante a cutscene.
+    private float _cutscenePlayerYOffset;
+
+    // Controle da subida.
+    private float _riseTimer;
+
+    private const float CUTSCENE_PLAYER_SPEED = 220f;
+
+    // Distância depois do centro da balança.
+    private const float BALANCE_TARGET_OFFSET = 180f;
+
+    // Quantos pixels o personagem sobe.
+    private const float PLAYER_RISE_HEIGHT = 60f;
+
+    // Duração da subida em segundos.
+    private const float PLAYER_RISE_DURATION = 0.6f;
+
+    // Sprite da balança que será desenhado no momento.
+    private AnimatedSprite _activeBalence;
+
+    private float _animationTimer;
+
+    private bool _dialogActive;
+    private bool _isNearDoctor;
+
+    private const float DOCTOR_TALK_RANGE = 150f;
+    private const string PRESS_E_TALK = "Press E para conversar";
 
     private const string PRESS_E_INTERECT = "Press E for go to Recepção";
 
@@ -92,7 +150,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
         
         // Set the position of the press E text
         Vector2 size = _font.MeasureString(PRESS_E_INTERECT);
-        _pressEInterectPos = new Vector2(Core.GraphicsDevice.PresentationParameters.BackBufferWidth / 2, 800);
+        _pressEInterectPos = new Vector2(Core.GraphicsDevice.PresentationParameters.BackBufferWidth / 2, 1000);
 
         UpdateCamera(0f, snap: true);       
     }
@@ -116,8 +174,19 @@ public class Scene_caldeirao : Scene, ISaveableScene
         _playerRight.Scale = Vector2.One;
         _player = _playerRight;
 
-        _raposo = charactersAtlas.CreateAnimatedSprite(RAPOSO_ANIMATION);
-        _raposo.Scale = Vector2.One;
+        _doctor = charactersAtlas.CreateAnimatedSprite(DOCTOR_ANIMATION);
+        _doctor.Scale = Vector2.One;
+        _doctorX = _background_RECEPCAO.Width * 0.0f;
+
+        _balence1 = charactersAtlas.CreateAnimatedSprite(BALENCE_ANIMATION1);
+        _balence1.Scale = Vector2.One;
+        _balence2 = charactersAtlas.CreateAnimatedSprite(BALENCE_ANIMATION2);
+        _balence2.Scale = Vector2.One;
+        _balence3 = charactersAtlas.CreateAnimatedSprite(BALENCE_ANIMATION3);
+        _balence3.Scale = Vector2.One;
+        _balenceX = _background_RECEPCAO.Width * 0.5f;
+
+        _activeBalence = _balence1;
 
         _recepcaoExitX = _background_RECEPCAO.Width * EXIT_RATIO;
 
@@ -128,6 +197,78 @@ public class Scene_caldeirao : Scene, ISaveableScene
         // Load the font
         _font = Content.Load<SpriteFont>("fonts/KiwiSoda");
         _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
+
+        List<DialogCutsceneSteps> doctorSteps = new List<DialogCutsceneSteps>
+        {
+            new DialogCutsceneSteps
+            {
+                caption = "Bem-vindo, você me conhecerá por Justiça.",
+                hasCaptionFadeIn = true,
+                durationInMillis = 3500
+            },
+
+            new DialogCutsceneSteps
+            {
+                caption = "Meu dever é simples, o seu destino nas palmas de minhas mãos.",
+                hasCaptionFadeIn = true,
+                durationInMillis = 3500
+            },
+
+            new DialogCutsceneSteps
+            {
+                caption = "Suba a balança, revele sua verdade, seu peso contra o peso da pena.",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            }
+        };
+
+        _doctorDialog1 = new DialogCutsceneController(
+            doctorSteps,
+            Color.White,
+            _font,
+            Core.GraphicsDevice
+        );
+
+        List<DialogCutsceneSteps> secondSteps = new()
+        {
+            new DialogCutsceneSteps
+            {
+                caption = "...",
+                hasCaptionFadeIn = true,
+                durationInMillis = 3500
+            },
+            new DialogCutsceneSteps
+            {
+                caption = "Como pode alguém ter o mesmo peso da pena?",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            },
+            new DialogCutsceneSteps
+            {
+                caption = "...",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            },
+            new DialogCutsceneSteps
+            {
+                caption = "Estranho… Nunca me ocorreu algo assim… Vigia havia me dito…",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            },
+            new DialogCutsceneSteps
+            {
+                caption = "Venha comigo Alma, devemos tirar isso a limpo.",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            }
+        };
+
+        _doctorDialog2 = new DialogCutsceneController(
+            secondSteps,
+            Color.White,
+            _font,
+            Core.GraphicsDevice
+        );
     }
 
     public override void Update(GameTime gameTime)
@@ -137,7 +278,9 @@ public class Scene_caldeirao : Scene, ISaveableScene
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
         _player.Update(gameTime);
-        _raposo.Update(gameTime);
+        _doctor.Update(gameTime);
+        _activeBalence?.Update(gameTime);
+
         
         // Check for keyboard input and handle it.
         CheckKeyboardInput(dt);
@@ -146,6 +289,13 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
         // Check for collision between the slime and the exit point to trigger a scene change.
         _isAtExit = MathF.Abs(_playerX - _recepcaoExitX) < EXIT_RANGE_RECEPCAO;
+
+        float balenceDrawX = _balenceX - _balence1.Width * -2.0f;
+
+        float doctorDrawX = _doctorX - _doctor.Width * -1.5f;
+        float doctorCenterX = doctorDrawX + _doctor.Width / 2f;
+
+        _isNearDoctor = MathF.Abs(_playerX - doctorCenterX) < 400f;
 
         // O item 3 só pode ser coletado depois de iniciar o puzzle.
         _isNearHair = GameSession.HauntedPuzzleStarted &&
@@ -164,6 +314,58 @@ public class Scene_caldeirao : Scene, ISaveableScene
                 Core.ChangeScene(new Scene_recepcao(RecepcaoSpawn.FromCaldeira));
                 return;
             }
+            else if (_isNearDoctor)
+            {
+                _doctorDialog1.Start();
+                _doctorSequence = DoctorSequence.FirstDialog;
+                _dialogActive = true;
+            }
+        }
+        if (_doctorSequence != DoctorSequence.None)
+        {
+            switch (_doctorSequence)
+            {
+                case DoctorSequence.FirstDialog:
+
+                    if (!_doctorDialog1.IsRunning)
+                        {
+                            _balanceStartX = _playerX;
+
+                            // Ponto X depois da balança.
+                            _balanceTargetX = MathHelper.Clamp(
+                                _balenceX + BALANCE_TARGET_OFFSET,
+                                WORLD_MARGIN,
+                                _background_RECEPCAO.Width - WORLD_MARGIN
+                            );
+
+                            _cutscenePlayerYOffset = 0f;
+                            _riseTimer = 0f;
+
+                            SetBalanceStage(1);
+
+                            _doctorSequence = DoctorSequence.MovingToBalance;
+                        }
+
+                    break;
+
+                case DoctorSequence.MovingToBalance:
+                    UpdatePlayerCutsceneMovement(dt);
+                    break;
+                
+                case DoctorSequence.RisingOnBalance:
+                    UpdatePlayerRiseAnimation(dt);
+                    break;
+                case DoctorSequence.SecondDialog:
+                    if (!_doctorDialog2.IsRunning)
+                    {
+                        _doctorSequence = DoctorSequence.None;
+                        _dialogActive = false;
+                    }
+                    break;
+            }
+
+            UpdateCamera(dt, snap: false);
+            return;
         }
     }
 
@@ -213,7 +415,81 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
         _playerX = MathHelper.Clamp(_playerX, WORLD_MARGIN, _background_RECEPCAO.Width - WORLD_MARGIN);
     }
+    private void UpdatePlayerCutsceneMovement(float dt)
+    {
+        float distance = _balanceTargetX - _playerX;
 
+        // Chegou ao ponto X depois da balança.
+        if (MathF.Abs(distance) <= CUTSCENE_PLAYER_SPEED * dt)
+        {
+            _playerX = _balanceTargetX;
+
+            // Começa a animação de subir.
+            _riseTimer = 0f;
+            _cutscenePlayerYOffset = 0f;
+
+            _doctorSequence = DoctorSequence.RisingOnBalance;
+
+            return;
+        }
+
+        // Define a direção do personagem.
+        if (distance > 0)
+        {
+            _player = _playerRight;
+            _playerX += CUTSCENE_PLAYER_SPEED * dt;
+        }
+        else
+        {
+            _player = _playerLeft;
+            _playerX -= CUTSCENE_PLAYER_SPEED * dt;
+        }
+    }
+
+    private void UpdatePlayerRiseAnimation(float dt)
+    {
+        _riseTimer += dt;
+
+        float progress = _riseTimer / PLAYER_RISE_DURATION;
+        progress = MathHelper.Clamp(progress, 0f, 1f);
+
+        // Suaviza o movimento de subida.
+        float easedProgress = progress * progress * (3f - 2f * progress);
+
+        // O personagem sobe gradualmente.
+        _cutscenePlayerYOffset = PLAYER_RISE_HEIGHT * easedProgress;
+
+        // A subida terminou.
+        if (progress >= 1f)
+        {
+            _cutscenePlayerYOffset = PLAYER_RISE_HEIGHT;
+
+            // Troca o sprite da balança somente depois da subida.
+            SetBalanceStage(2);
+
+            // Começa o segundo diálogo.
+            _doctorDialog2.Start();
+            _doctorSequence = DoctorSequence.SecondDialog;
+        }
+    }
+
+    private void SetBalanceStage(int stage)
+    {
+        switch (stage)
+        {
+            case 1:
+                _activeBalence = _balence1;
+                break;
+
+            case 2:
+                _activeBalence = _balence2;
+                break;
+
+            case 3:
+                _activeBalence = _balence3;
+                break;
+        }
+    }
     private float GetWorldScale()
     {
         return Core.GraphicsDevice.PresentationParameters.BackBufferHeight / (float)_background_RECEPCAO.Height;
@@ -250,8 +526,9 @@ public class Scene_caldeirao : Scene, ISaveableScene
                 new Vector2(_hairX - _hairSprite.Width * 0.5f, GROUND_Y - _hairSprite.Height));
         }
 
-        _raposo.Draw(Core.SpriteBatch, new Vector2(_raposoX - _raposo.Width * -1.5f, GROUND_Y - _raposo.Height));
-        _player.Draw(Core.SpriteBatch, new Vector2(_playerX - _player.Width * 0.5f, GROUND_Y - _player.Height));
+        _activeBalence?.Draw(Core.SpriteBatch, new Vector2(_balenceX - _activeBalence.Width * 0.5f, GROUND_Y - _activeBalence.Height));
+        _doctor.Draw(Core.SpriteBatch, new Vector2(_doctorX - _doctor.Width * -1.5f, GROUND_Y - _doctor.Height));
+        _player.Draw(Core.SpriteBatch, new Vector2(_playerX - _player.Width * 0.5f, GROUND_Y - _player.Height - _cutscenePlayerYOffset));
 
         Core.SpriteBatch.End();
 
@@ -286,6 +563,31 @@ public class Scene_caldeirao : Scene, ISaveableScene
                 SpriteEffects.None,
                 0.0f
             );
+        }
+        else if (_isNearDoctor && !_dialogActive)
+        {
+            Core.SpriteBatch.DrawString(
+                _font,
+                PRESS_E_TALK,
+                _pressEInterectPos,
+                Color.White,
+                0.0f,
+                _font.MeasureString(PRESS_E_TALK) * 0.5f,
+                1.0f,
+                SpriteEffects.None,
+                0.0f
+            );
+        }
+        Core.SpriteBatch.End();
+
+        Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+        if (_doctorSequence == DoctorSequence.FirstDialog)
+        {
+            _doctorDialog1?.Draw(Core.SpriteBatch, gameTime);
+        }
+        else if (_doctorSequence == DoctorSequence.SecondDialog)
+        {
+            _doctorDialog2?.Draw(Core.SpriteBatch, gameTime);
         }
         Core.SpriteBatch.End();
 
