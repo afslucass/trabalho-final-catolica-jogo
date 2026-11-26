@@ -33,6 +33,7 @@ public class CutsceneController
     private int linesStepIndex = -1;
 
     public bool UseTextBox { get; set; } = true;
+    public bool IsPlaying => hasStarted;
 
     public CutsceneController(
         List<Step> steps,

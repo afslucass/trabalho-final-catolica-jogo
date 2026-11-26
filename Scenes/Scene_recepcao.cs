@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
 using GameCore;
 using GameCore.CustomMouseCursor;
 using GameCore.DialogCutscene;
@@ -154,6 +155,12 @@ public class Scene_recepcao : Scene, ISaveableScene
     // UI and audio resources.
     private SpriteFont _font;
     private SoundEffect _collectSoundEffect;
+    private SoundEffect _DoorSoundEffect;
+    private Song _introSong;
+    private const float INTRO_VOLUME = 0.45f;
+    private Song _ambienceSong;
+    private const float AMBIENCE_VOLUME = 0.45f;
+    private bool _introMusicFinished;
 
     // ---------- Puzzle do Estranho ----------
     // Item 2 do disfarce (colar), no lado direito da recepção. Só pode ser coletado
@@ -164,7 +171,6 @@ public class Scene_recepcao : Scene, ISaveableScene
     private Sprite _necklaceSprite;
     private float _necklaceX;
     private bool _isNearNecklace;
-
     // Cenário 1: o jogador tentou passar sem o item necessário. O Vigia o reconhece e o
     // leva de volta ao vagão assombrado.
     private const float VIGIA_BLOCK_RANGE = 500f;  // Sem o item 1, não passa daqui em direção ao Vigia.
@@ -268,9 +274,15 @@ public class Scene_recepcao : Scene, ISaveableScene
         _pixel.SetData(new[] { Color.White });
 
         _collectSoundEffect = Content.Load<SoundEffect>("audio/collect");
+        _DoorSoundEffect = Content.Load<SoundEffect>("audio/portas");
         _font = Content.Load<SpriteFont>("fonts/KiwiSoda");
-
-        // Fallback: unsupported font characters are replaced with '?'
+        _ambienceSong = Content.Load<Song>("audio/recepcao_ambience");
+        _introSong = Content.Load<Song>("audio/intro_ambience");
+        if (_startX.HasValue || GameSession.IntroCutscenePlayed)
+{
+        StartAmbienceAudio();
+}
+        // Fallback: unsupported font characters are replaced with '?')         
         // (or a space) to prevent ArgumentException in MeasureString/DrawString.
         // Add accented characters to the .spritefont CharacterRegion to render them correctly.
         _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
@@ -381,6 +393,12 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         if (!_startX.HasValue && (_showIntroCutscene || !GameSession.IntroCutscenePlayed))
         {
+            MediaPlayer.Stop();
+            MediaPlayer.IsRepeating = true;
+            MediaPlayer.Volume = MathHelper.Clamp(
+            Core.Audio.SongVolume * INTRO_VOLUME, 0f, 1f);
+            MediaPlayer.Play(_introSong);
+
             cutscene.Start();
             GameSession.IntroCutscenePlayed = true;
         }
@@ -390,9 +408,25 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         BuildDialogs();
     }
+    private void StartAmbienceAudio()
+    {
+    if (_ambienceSong == null)
+        return;
 
+    MediaPlayer.Stop();
+    MediaPlayer.IsRepeating = true;
+
+    MediaPlayer.Volume = MathHelper.Clamp(
+        Core.Audio.SongVolume * AMBIENCE_VOLUME,
+        0f,
+        1f
+    );
+
+    MediaPlayer.Play(_ambienceSong);
+    }
     public override void UnloadContent()
     {
+        MediaPlayer.Stop();
         _pixel?.Dispose();
         base.UnloadContent();
     }
@@ -659,6 +693,11 @@ public class Scene_recepcao : Scene, ISaveableScene
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
+        if (_showIntroCutscene && !_introMusicFinished && !cutscene.IsPlaying)
+    {
+    _introMusicFinished = true;
+    StartAmbienceAudio();
+    }
 
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
@@ -766,12 +805,15 @@ public class Scene_recepcao : Scene, ISaveableScene
             }
             else if (_isAtLeftExit && _leftExitOpen)
             {
+                Core.Audio.PlaySoundEffect(_DoorSoundEffect);
                 Core.ChangeScene(new Scene_assombrado());
                 return;
             }
             else if (_isAtRightExit && _rightExitOpen)
             {
+                Core.Audio.PlaySoundEffect(_DoorSoundEffect);
                 Core.ChangeScene(new Scene_caldeirao());
+
                 return;
             }
         }
@@ -779,8 +821,6 @@ public class Scene_recepcao : Scene, ISaveableScene
 
     private void StartTalk(Talk talk)
     {
-        Core.Audio.PlaySoundEffect(_collectSoundEffect);
-
         // Turns the player toward the Watcher.
         _player = _vigiaX < _playerX ? _playerLeft : _playerRight;
 

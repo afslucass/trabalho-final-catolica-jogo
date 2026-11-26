@@ -6,7 +6,8 @@ using Microsoft.Xna.Framework.Input;
 using GameCore;
 using GameCore.Save;
 using GameCore.Scenes;
-
+using Microsoft.Xna.Framework.Audio;
+using Microsoft.Xna.Framework.Media;
 namespace TestGame.Scenes;
 
 public class TitleScene : Scene
@@ -40,6 +41,8 @@ public class TitleScene : Scene
 
     // The origin to set for the slime text.
     private Vector2 _slimeTextOrigin;
+    private Song _introSong;
+    private const float INTRO_VOLUME = 0.45f;
 
     // Menu: lista de opções (texto e ação) e a opção selecionada.
     private readonly List<(string Label, Action Action)> _options = new();
@@ -84,6 +87,20 @@ public class TitleScene : Scene
 
         // Load the font for the title text.
         _font5x = Content.Load<SpriteFont>("fonts/04B_30_5x");
+
+        _introSong = Content.Load<Song>("audio/intro_ambience");
+
+        MediaPlayer.Stop();
+        MediaPlayer.IsRepeating = true;
+        MediaPlayer.Volume = MathHelper.Clamp(
+        Core.Audio.SongVolume * INTRO_VOLUME, 0f, 1f);
+
+        MediaPlayer.Play(_introSong);
+    }
+    public override void UnloadContent()
+    {
+    MediaPlayer.Stop();
+    base.UnloadContent();
     }
 
     // Monta a lista de opções. Se existe um save utilizável, "Continuar" vem primeiro
