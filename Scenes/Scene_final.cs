@@ -123,7 +123,7 @@ public class Scene_final : Scene
         foreach (DialogCutsceneSteps step in steps)
             _totalMs += step.durationInMillis;
 
-        _dialog = new DialogCutsceneController(steps, Color.White, _font, Core.GraphicsDevice);
+        _dialog = new DialogCutsceneController(steps, Alloy, _font, Core.GraphicsDevice);
     }
 
     public override void Initialize()
