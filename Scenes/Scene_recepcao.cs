@@ -689,13 +689,13 @@ public class Scene_recepcao : Scene, ISaveableScene
         UpdateVigia(dt);
 
         // Turns the Watcher toward the player's position.
-        if (GameSession.Stage >= StoryStage.VagaoAssombrado)
+        if (_spawn == RecepcaoSpawn.FromAssombrado)
         {
-            _vigia = _vigiaItch;
+        _vigia = _vigiaItch;
         }
         else
         {
-            _vigia = _playerX < _vigiaX ? _vigiaLeft : _vigiaRight;
+        _vigia = _playerX < _vigiaX ? _vigiaLeft : _vigiaRight;
         }
 
         // Updates the active dialog timer and ends the dialog when it reaches zero.
