@@ -75,6 +75,11 @@ public class Scene_caldeirao : Scene, ISaveableScene
     private DialogCutsceneController _doctor1Dialog1;
     private DialogCutsceneController _doctor1Dialog2;
     private DialogCutsceneController _doctor1Dialog3;
+    private DialogCutsceneController _doctorRepeatDialog;
+    private DialogCutsceneController _doctorRepeatDialog2;
+    private DialogCutsceneController _doctorsemNecklaceDialog;
+    private DialogCutsceneController _hairWithoutNecklaceDialog;
+    private DialogCutsceneController _hairWithNecklaceDialog;
     private enum DoctorSequence
     {
         None,
@@ -83,7 +88,12 @@ public class Scene_caldeirao : Scene, ISaveableScene
         RisingOnBalance,
         SecondDialog,
         ReturningToGround,
+        RepeatDialog,
         ThirdDialog,
+        RepeatDialog2,
+        semNecklaceDialog,
+        HairWithoutNecklaceDialog,
+        HairWithNecklaceDialog,
         Completed
     }
 
@@ -140,7 +150,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
     // Item 3 do disfarce (cabelo). Só pode ser coletado depois de iniciar o puzzle
     // (falar com o Estranho no vagão assombrado).
-    private const float HAIR_X_RATIO = 0.55f;
+    private const float HAIR_X_RATIO = 0.20f;
     private const float ITEM_RANGE = 150f;
     private const string PRESS_E_COLLECT_ITEM = "Press E para pegar o item";
     private Sprite _hairSprite;
@@ -310,6 +320,23 @@ public class Scene_caldeirao : Scene, ISaveableScene
             _font,
             Core.GraphicsDevice
         );
+
+        List<DialogCutsceneSteps> repeatSteps = new()
+        {
+            new DialogCutsceneSteps
+            {
+                caption = "Vá na frente Alma, estarei logo atrás de você.",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            }
+        };
+
+        _doctorRepeatDialog = new DialogCutsceneController(
+            repeatSteps,
+            Alloy,
+            _font,
+            Core.GraphicsDevice
+        );
         
         List<DialogCutsceneSteps> thirdSteps = new()
         {
@@ -321,19 +348,113 @@ public class Scene_caldeirao : Scene, ISaveableScene
             },
             new DialogCutsceneSteps
             {
-                caption = "Bem corajoso da sua parte, Alma. Tentar roubar a minha roupa perante a minha cara.",
+                caption = "Bem corajoso da sua parte, Alma. Voltar aqui depois do que conversamos.",
                 hasCaptionFadeIn = true,
                 durationInMillis = 4000
             },
             new DialogCutsceneSteps
             {
-                caption = "Você não deveria estar aqui, volte para o estranho, ele está te esperando.",
+                caption = "Suma daqui, não tenho mais nada a para lhe dizer.",
                 hasCaptionFadeIn = true,
                 durationInMillis = 4000
             },
         };
         _doctor1Dialog3 = new DialogCutsceneController(
             thirdSteps,
+            Alloy,
+            _font,
+            Core.GraphicsDevice
+        );
+        List<DialogCutsceneSteps> repeatSteps2 = new()
+        {
+            new DialogCutsceneSteps
+            {
+                caption = "Vá ver o Entranho alma, me deixe em paz.",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            }
+        };
+
+        _doctorRepeatDialog2 = new DialogCutsceneController(
+            repeatSteps2,
+            Alloy,
+            _font,
+            Core.GraphicsDevice
+        );
+        List<DialogCutsceneSteps> semMaskSteps = new()
+        {
+            new DialogCutsceneSteps
+            {
+                caption = "Quem é você? O estranho te mandou aqui?",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            },
+            new DialogCutsceneSteps
+            {
+                caption = "Saia criado, não quero conversar.",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            }
+        };
+
+        _doctorsemNecklaceDialog = new DialogCutsceneController(
+            semMaskSteps,
+            Alloy,
+            _font,
+            Core.GraphicsDevice
+        );
+        List<DialogCutsceneSteps> hairWithoutNecklaceSteps = new()
+        {
+            new DialogCutsceneSteps
+            {
+                caption = "Ei cria do Estranho, deixe o cabelo onde está, saia daqui.",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            }
+        };
+
+        _hairWithoutNecklaceDialog = new DialogCutsceneController(
+            hairWithoutNecklaceSteps,
+            Alloy,
+            _font,
+            Core.GraphicsDevice
+        );
+        List<DialogCutsceneSteps> hairWithNecklaceSteps = new()
+        {
+            new DialogCutsceneSteps
+            {
+                caption = "Você cheira como meu amigo… Vigia nunca me disse que havia dado cria…",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            },
+            new DialogCutsceneSteps
+            {
+                caption = "...",
+                hasCaptionFadeIn = true,
+                durationInMillis = 3000
+            },
+            new DialogCutsceneSteps
+            {
+                caption = "Somos capazes de ter herdeiros?",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            },
+            new DialogCutsceneSteps
+            {
+                caption = "...",
+                hasCaptionFadeIn = true,
+                durationInMillis = 3000
+            },
+            new DialogCutsceneSteps
+            {
+                caption = "Não, não estou pelado.",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            },
+        };
+
+        _hairWithNecklaceDialog = new DialogCutsceneController(
+            hairWithNecklaceSteps,
             Alloy,
             _font,
             Core.GraphicsDevice
@@ -351,8 +472,12 @@ public class Scene_caldeirao : Scene, ISaveableScene
         _activeBalence?.Update(gameTime);
 
         
-        // Check for keyboard input and handle it.
-        CheckKeyboardInput(dt);
+        // Só permite movimentação quando não há cutscene.
+        if (_doctor1Sequence == DoctorSequence.None ||
+            _doctor1Sequence == DoctorSequence.Completed)
+        {
+            CheckKeyboardInput(dt);
+        }
 
         UpdateCamera(dt, snap: false);
 
@@ -370,26 +495,57 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
         // O item 3 só pode ser coletado depois de iniciar o puzzle.
         _isNearHair = GameSession.HauntedPuzzleStarted &&
-                      !GameSession.Inventory.Has(GameItems.HairId) &&
-                      MathF.Abs(_playerX - _hairX) < ITEM_RANGE;
+                !GameSession.Inventory.Has(GameItems.HairId) &&
+                MathF.Abs(_playerX - _hairX) < ITEM_RANGE;
 
-        if (Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
+        if (Core.Input.Keyboard.WasKeyJustPressed(Keys.E) &&
+            (_doctor1Sequence == DoctorSequence.None ||
+            _doctor1Sequence == DoctorSequence.Completed))
         {
             if (_isNearHair)
-            {
-                GameSession.Inventory.CollectItem(GameItems.HairId, GameItems.HairIcon);
-            }
-            else if (_isAtExit)
+                {
+                    if (GameSession.Inventory.Has(GameItems.NecklaceId))
+                    {
+                        _hairWithNecklaceDialog.Start();
+
+                        _doctor1Sequence = DoctorSequence.HairWithNecklaceDialog;
+
+                        _dialogActive = true;
+                    }
+                    else
+                    {
+                        _hairWithoutNecklaceDialog.Start();
+
+                        _doctor1Sequence = DoctorSequence.HairWithoutNecklaceDialog;
+                        _dialogActive = true;
+                    }
+                }
+            else if (_isAtExit && GameSession.CaldeiraoSequenceCompleted)
             {
                 MediaPlayer.Stop();
-                // Volta pela porta da direita da recepção (a Caldeira fica à direita dela).
-                Core.ChangeScene(new Scene_recepcao(RecepcaoSpawn.FromCaldeira));
+
+                // Registra que Alma saiu da Caldeira pela primeira vez.
+                GameSession.SaiuDaCaldeiraPelaPrimeiraVez = true;
+
+                Core.ChangeScene(
+                    new Scene_recepcao(RecepcaoSpawn.FromCaldeira)
+                );
+
                 return;
             }
             else if (_isNearDoctor && !_dialogActive)
             {
+                // Puzzle iniciado, mas Alma ainda não possui a máscara.
+                if (GameSession.HauntedPuzzleStarted &&
+                    !GameSession.Inventory.Has(GameItems.NecklaceId))
+                {
+                    _doctorsemNecklaceDialog.Start();
+
+                    _doctor1Sequence = DoctorSequence.semNecklaceDialog;
+                    _dialogActive = true;
+                }
                 // Primeira visita: inicia a sequência da balança.
-                if (!GameSession.CaldeiraoSequenceCompleted)
+                else if (!GameSession.CaldeiraoSequenceCompleted)
                 {
                     _doctor1Dialog1.Start();
 
@@ -397,11 +553,25 @@ public class Scene_caldeirao : Scene, ISaveableScene
                     _dialogActive = true;
                 }
                 // Segunda visita: inicia o terceiro diálogo.
-                else
+                else if (!GameSession.SaiuDaCaldeiraPelaPrimeiraVez)
+                {
+                    _doctorRepeatDialog.Start();
+
+                    _doctor1Sequence = DoctorSequence.RepeatDialog;
+                    _dialogActive = true;
+                }
+                else if (!GameSession.ThirdJusticeDialogCompleted)
                 {
                     _doctor1Dialog3.Start();
 
                     _doctor1Sequence = DoctorSequence.ThirdDialog;
+                    _dialogActive = true;
+                }
+                else
+                {
+                    _doctorRepeatDialog2.Start();
+
+                    _doctor1Sequence = DoctorSequence.RepeatDialog2;
                     _dialogActive = true;
                 }
             }
@@ -450,9 +620,52 @@ public class Scene_caldeirao : Scene, ISaveableScene
                 case DoctorSequence.ReturningToGround:
                     UpdatePlayerReturnAnimation(dt);
                     break;
+                case DoctorSequence.RepeatDialog:
+                    if (!_doctorRepeatDialog.IsRunning)
+                    {
+                        _doctor1Sequence = DoctorSequence.Completed;
+                        _dialogActive = false;
+                    }
+                    break;               
                 case DoctorSequence.ThirdDialog:
                     if (!_doctor1Dialog3.IsRunning)
                     {
+                        GameSession.ThirdJusticeDialogCompleted = true;
+
+                        _doctor1Sequence = DoctorSequence.Completed;
+                        _dialogActive = false;
+                    }
+                    break;
+                case DoctorSequence.RepeatDialog2:
+                    if (!_doctorRepeatDialog2.IsRunning)
+                    {
+                        _doctor1Sequence = DoctorSequence.Completed;
+                        _dialogActive = false;
+                    }
+                    break;
+                case DoctorSequence.semNecklaceDialog:
+                    if (!_doctorsemNecklaceDialog.IsRunning)
+                    {
+                        _doctor1Sequence = DoctorSequence.Completed;
+                        _dialogActive = false;
+                    }
+
+                    break;
+                case DoctorSequence.HairWithoutNecklaceDialog:
+                    if (!_hairWithoutNecklaceDialog.IsRunning)
+                    {
+                        _doctor1Sequence = DoctorSequence.Completed;
+                        _dialogActive = false;
+                    }
+                    break;
+                case DoctorSequence.HairWithNecklaceDialog:               
+                    if (!_hairWithNecklaceDialog.IsRunning)
+                    {
+                        GameSession.Inventory.CollectItem(
+                            GameItems.HairId,
+                            GameItems.HairIcon
+                        );
+
                         _doctor1Sequence = DoctorSequence.Completed;
                         _dialogActive = false;
                     }
@@ -745,7 +958,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
                 0.0f
             );
         }
-        else if (_isAtExit)
+        else if (_isAtExit && GameSession.CaldeiraoSequenceCompleted)
         {
             Core.SpriteBatch.DrawString(
                 _font,
@@ -784,9 +997,29 @@ public class Scene_caldeirao : Scene, ISaveableScene
         {
             _doctor1Dialog2?.Draw(Core.SpriteBatch, gameTime);
         }
+        else if (_doctor1Sequence == DoctorSequence.RepeatDialog)
+        {
+            _doctorRepeatDialog?.Draw(Core.SpriteBatch, gameTime);
+        }
         else if (_doctor1Sequence == DoctorSequence.ThirdDialog)
         {
             _doctor1Dialog3?.Draw(Core.SpriteBatch, gameTime);
+        }
+        else if (_doctor1Sequence == DoctorSequence.RepeatDialog2)
+        {
+            _doctorRepeatDialog2?.Draw(Core.SpriteBatch, gameTime);
+        }
+        else if (_doctor1Sequence == DoctorSequence.semNecklaceDialog)
+        {
+            _doctorsemNecklaceDialog?.Draw(Core.SpriteBatch, gameTime);
+        }
+        else if (_doctor1Sequence == DoctorSequence.HairWithoutNecklaceDialog)
+        {
+            _hairWithoutNecklaceDialog?.Draw(Core.SpriteBatch, gameTime);
+        }
+        else if (_doctor1Sequence == DoctorSequence.HairWithNecklaceDialog)
+        {
+            _hairWithNecklaceDialog?.Draw(Core.SpriteBatch, gameTime);
         }
         Core.SpriteBatch.End();
 
