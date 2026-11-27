@@ -69,7 +69,10 @@ public static class GameSession
     // Em que ponto da história o jogador está (libera portas e muda os diálogos).
     public static StoryStage Stage { get; set; } = StoryStage.Intro;
     // Sequencia de animação da sala do Caldeirão.
-    public static bool CaldeiraoSequenceCompleted = false;
+    // Progressão narrativa da Caldeira.
+    public static bool CaldeiraoSequenceCompleted { get; set; } = false;
+    public static bool SaiuDaCaldeiraPelaPrimeiraVez { get; set; } = false;
+    public static bool ThirdJusticeDialogCompleted { get; set; } = false;
 
     public static bool VigiaDesbloqueouSegundoSprite { get; set; } = false;
     // Quantas vezes o jogador tentou sair do vagão assombrado sem a máscara
@@ -139,6 +142,10 @@ public static class GameSession
         IntroCutscenePlayed = false;
         VigiaDesbloqueouSegundoSprite = false;
         IntroSeen = false;
+        // Progressão da Caldeira
+        CaldeiraoSequenceCompleted = false;
+        SaiuDaCaldeiraPelaPrimeiraVez = false;
+        ThirdJusticeDialogCompleted = false;
     }
     public static SaveData CreateSaveData(string sceneId, Vector2 playerPosition)
     {
@@ -153,7 +160,11 @@ public static class GameSession
             HauntedRetries = HauntedRetries,
             HauntedPuzzleStarted = HauntedPuzzleStarted,
             IntroCutscenePlayed = IntroCutscenePlayed,
-            IntroSeen = IntroSeen
+            IntroSeen = IntroSeen,
+            // Progressão da Caldeira
+            CaldeiraoSequenceCompleted = CaldeiraoSequenceCompleted,
+            SaiuDaCaldeiraPelaPrimeiraVez = SaiuDaCaldeiraPelaPrimeiraVez,
+            ThirdJusticeDialogCompleted = ThirdJusticeDialogCompleted
         };
 
         foreach (var item in Inventory.Items)
@@ -171,7 +182,10 @@ public static class GameSession
         HauntedPuzzleStarted = data.HauntedPuzzleStarted;
         IntroCutscenePlayed = data.IntroCutscenePlayed;
         IntroSeen = data.IntroSeen;
-
+        // Recupera a progressão da Caldeira
+        CaldeiraoSequenceCompleted = data.CaldeiraoSequenceCompleted;
+        SaiuDaCaldeiraPelaPrimeiraVez = data.SaiuDaCaldeiraPelaPrimeiraVez;
+        ThirdJusticeDialogCompleted = data.ThirdJusticeDialogCompleted;
         // Mantém a mesma instância do inventário (cenas podem estar guardando a referência).
         Inventory.Clear();
         foreach (var item in data.Items)

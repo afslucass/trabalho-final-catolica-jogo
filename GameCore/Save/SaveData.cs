@@ -31,6 +31,11 @@ public class SaveData
 
     // true depois que o jogador falou com o Estranho (o puzzle do disfarce começou).
     public bool HauntedPuzzleStarted { get; set; }
+    // true depois que o jogador saiu da caldeira pela primeira vez.
+    // Progressão narrativa da Caldeira.
+    public bool CaldeiraoSequenceCompleted { get; set; }
+    public bool SaiuDaCaldeiraPelaPrimeiraVez { get; set; }
+    public bool ThirdJusticeDialogCompleted { get; set; }
 
     // Itens do inventário: id do item -> nome da região do ícone no atlas.
     public Dictionary<string, string> Items { get; set; } = new();

@@ -120,6 +120,8 @@ public class Scene_recepcao : Scene, ISaveableScene
     private bool _isAtRightExit;
     private bool _leftExitOpen;
     private bool _rightExitOpen;
+    // Bloqueia a porta da Caldeira ao retornar dela.
+    private bool _caldeiraBloqueada;
 
     // ---------- UI Text ----------
     private const string PRESS_E_TALK = "Press E para conversar";
@@ -155,12 +157,12 @@ public class Scene_recepcao : Scene, ISaveableScene
     // UI and audio resources.
     private SpriteFont _font;
     private SoundEffect _DoorSoundEffect;
-    private bool _ambienceStarted;
     private Song _introSong;
     private const float INTRO_VOLUME = 0.45f;
     private Song _ambienceSong;
     private const float AMBIENCE_VOLUME = 1.0f;
     private bool _introMusicFinished;
+    private bool _ambienceStarted = false;
 
     // ---------- Puzzle do Estranho ----------
     // Item 2 do disfarce (colar), no lado direito da recepção. Só pode ser coletado
@@ -209,6 +211,8 @@ public class Scene_recepcao : Scene, ISaveableScene
 
                 _justicaAcompanhando = GameSession.Stage == StoryStage.Julgada;
                 _justicaVisivel = _justicaAcompanhando;
+                // Bloqueia a porta da Caldeira ao retornar para a recepção.
+                _caldeiraBloqueada = _justicaVisivel;
                 break;
 
             case RecepcaoSpawn.FromAssombrado:
@@ -232,6 +236,9 @@ public class Scene_recepcao : Scene, ISaveableScene
 
     public override void LoadContent()
     {
+        System.Diagnostics.Debug.WriteLine(
+            "RECEPÇÃO: LoadContent"
+        );
         base.LoadContent();
 
         // Atlas containing characters, items, and backgrounds from spritesheet_final.
@@ -406,17 +413,17 @@ public class Scene_recepcao : Scene, ISaveableScene
     }
     private void StartAmbienceAudio()
     {
-    if (_ambienceSong == null || _ambienceStarted)
-        return;
-    _ambienceStarted = true;
-    MediaPlayer.Stop();
-    MediaPlayer.IsRepeating = true;
-    Core.Audio.SetSongVolumeScale(AMBIENCE_VOLUME);
-    MediaPlayer.Play(_ambienceSong);
-    }
+        if (_ambienceSong == null || _ambienceStarted)
+            return;
+        _ambienceStarted = true;
+        MediaPlayer.Stop();
+        MediaPlayer.IsRepeating = true;
+        Core.Audio.SetSongVolumeScale(AMBIENCE_VOLUME);
+        MediaPlayer.Play(_ambienceSong);
+        }
     public override void UnloadContent()
     {
-        MediaPlayer.Stop();
+        //MediaPlayer.Stop();
         _pixel?.Dispose();
         base.UnloadContent();
     }
@@ -779,7 +786,7 @@ public class Scene_recepcao : Scene, ISaveableScene
         // The right arch (Boiler) unlocks after speaking to the Watcher; the
         // left arch (Haunted Train) stays locked until Alma has gone to the Boiler
         // for the first time (Scene_caldeirao sets the stage to Julgada).
-        _rightExitOpen = GameSession.Stage >= StoryStage.FalouComVigia;
+        _rightExitOpen = GameSession.Stage >= StoryStage.FalouComVigia && !_caldeiraBloqueada;
         _leftExitOpen = GameSession.Stage >= StoryStage.Julgada;
 
         if (_activeTalk == null && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
