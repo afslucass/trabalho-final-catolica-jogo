@@ -36,6 +36,21 @@ public class Scene_caldeirao : Scene, ISaveableScene
     private AnimatedSprite _playerLeft;
     private AnimatedSprite _playerRight;
 
+    // ---------- Expulsão por falta do colar ----------
+    private bool _isBeingExpelled;
+    private float _expulsionRemainingMs;
+
+    private const float EXPULSION_MS = 3500f;
+
+    private const string EXPULSION_TEXT =
+        "Alma? O Vigia não ficará contente… Por favor, desista e pereça.";
+    
+    private bool HasNecklace()
+    {
+        return GameSession.Inventory.Has(GameItems.NecklaceId);
+    }
+    // Textura utilizada para escurecer a tela.
+    private Texture2D _pixel;
     // Horizontal position of the player's foot center, in background pixels.
     private float _playerX;
     // Movement speed in background pixels per second (Space applies the sprint multiplier).
@@ -248,6 +263,9 @@ public class Scene_caldeirao : Scene, ISaveableScene
         // Load the font
         _font = Content.Load<SpriteFont>("fonts/KiwiSoda");
         _font.DefaultCharacter = _font.Characters.Contains('?') ? '?' : ' ';
+        // Textura branca de 1x1 para desenhar o fundo escuro.
+        _pixel = new Texture2D(Core.GraphicsDevice, 1, 1);
+        _pixel.SetData(new[] { Color.White });
 
         List<DialogCutsceneSteps> doctorSteps = new List<DialogCutsceneSteps>
         {
@@ -344,17 +362,17 @@ public class Scene_caldeirao : Scene, ISaveableScene
             {
                 caption = "...",
                 hasCaptionFadeIn = true,
+                durationInMillis = 3000
+            },
+            new DialogCutsceneSteps
+            {
+                caption = "Hum... Que cheiro...",
+                hasCaptionFadeIn = true,
                 durationInMillis = 3500
             },
             new DialogCutsceneSteps
             {
-                caption = "Bem corajoso da sua parte, Alma. Voltar aqui depois do que conversamos.",
-                hasCaptionFadeIn = true,
-                durationInMillis = 4000
-            },
-            new DialogCutsceneSteps
-            {
-                caption = "Suma daqui, não tenho mais nada a para lhe dizer.",
+                caption = "Que cheiro familiar. Como que você tem esse cheiro?",
                 hasCaptionFadeIn = true,
                 durationInMillis = 4000
             },
@@ -369,7 +387,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
         {
             new DialogCutsceneSteps
             {
-                caption = "Vá ver o Entranho alma, me deixe em paz.",
+                caption = "Que cheiro familiar...",
                 hasCaptionFadeIn = true,
                 durationInMillis = 4000
             }
@@ -464,6 +482,32 @@ public class Scene_caldeirao : Scene, ISaveableScene
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
+        // Controla a expulsão do jogador.
+        if (_isBeingExpelled)
+        {
+            _expulsionRemainingMs -=
+                (float)gameTime.ElapsedGameTime.TotalMilliseconds;
+
+            if (_expulsionRemainingMs <= 0)
+            {
+                MediaPlayer.Stop();
+
+                Core.ChangeScene(
+                    new Scene_assombrado(isRetryChase: true)
+                );
+
+                return;
+            }
+
+            return;
+        }
+
+        // Verifica se o jogador não possui o colar.
+        if (!HasNecklace() && GameSession.HauntedPuzzleStarted)
+        {
+            StartExpulsion();
+            return;
+        }
 
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
@@ -724,6 +768,16 @@ public class Scene_caldeirao : Scene, ISaveableScene
         }
 
         _playerX = MathHelper.Clamp(_playerX, WORLD_MARGIN, _background_RECEPCAO.Width - WORLD_MARGIN);
+    }
+    private void StartExpulsion()
+    {
+        if (_isBeingExpelled)
+            return;
+
+        _isBeingExpelled = true;
+        _expulsionRemainingMs = EXPULSION_MS;
+
+        _dialogActive = true;
     }
     private void UpdatePlayerCutsceneMovement(float dt)
     {
@@ -1022,6 +1076,39 @@ public class Scene_caldeirao : Scene, ISaveableScene
             _hairWithNecklaceDialog?.Draw(Core.SpriteBatch, gameTime);
         }
         Core.SpriteBatch.End();
+
+        // Mensagem exibida durante a expulsão.
+        if (_isBeingExpelled)
+        {
+            int w = Core.GraphicsDevice.PresentationParameters.BackBufferWidth;
+            int h = Core.GraphicsDevice.PresentationParameters.BackBufferHeight;
+
+            float elapsed = (EXPULSION_MS - _expulsionRemainingMs) / EXPULSION_MS;
+            float alpha = MathHelper.Clamp(elapsed * 3f, 0f, 1f) * 0.7f;
+
+            Vector2 textSize = _font.MeasureString(EXPULSION_TEXT);
+
+            Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+
+            Core.SpriteBatch.Draw(
+                _pixel,
+                new Rectangle(0, 0, w, h),
+                Color.Black * alpha
+            );
+
+            Core.SpriteBatch.DrawString(
+                _font,
+                EXPULSION_TEXT,
+                new Vector2(
+                    (w - textSize.X) * 0.5f,
+                    (h - textSize.Y) * 0.5f
+                ),
+                Alloy
+            );
+
+            Core.SpriteBatch.End();
+        }
+
 
         base.Draw(gameTime);
     }
