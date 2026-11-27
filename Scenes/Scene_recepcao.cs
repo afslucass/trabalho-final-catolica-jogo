@@ -394,8 +394,7 @@ public class Scene_recepcao : Scene, ISaveableScene
         if (!_startX.HasValue && (_showIntroCutscene || !GameSession.IntroCutscenePlayed))
         {
             MediaPlayer.Stop();
-            MediaPlayer.IsRepeating = true;
-            Core.Audio.SetSongVolumeScale(AMBIENCE_VOLUME);
+            MediaPlayer.IsRepeating = false;
             MediaPlayer.Play(_introSong);
             cutscene.Start();
             GameSession.IntroCutscenePlayed = true;
@@ -1074,7 +1073,7 @@ public class Scene_recepcao : Scene, ISaveableScene
 
             Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
             Core.SpriteBatch.Draw(_pixel, new Rectangle(0, 0, w, h), Color.Black * alpha);
-            Core.SpriteBatch.DrawString(_font, CAUGHT_TEXT, new Vector2((w - textSize.X) * 0.5f, (h - textSize.Y) * 0.5f), Color.White);
+            Core.SpriteBatch.DrawString(_font, CAUGHT_TEXT, new Vector2((w - textSize.X) * 0.5f, (h - textSize.Y) * 0.5f), Alloy);
             Core.SpriteBatch.End();
         }
 
