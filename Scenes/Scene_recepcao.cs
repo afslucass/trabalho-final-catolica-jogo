@@ -110,7 +110,7 @@ public class Scene_recepcao : Scene, ISaveableScene
     // ---------- Exits ----------
     // The two background arches: the left one leads to the Haunted Train,
     // and the right one leads to the Boiler. Positions are ratios of background width.
-    private const float LEFT_EXIT_RATIO = 0.100f;
+    private const float LEFT_EXIT_RATIO = 0.015f;
     private const float RIGHT_EXIT_RATIO = 0.985f;
     private const float EXIT_RANGE = 320f;
 
