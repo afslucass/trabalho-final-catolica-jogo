@@ -76,6 +76,7 @@ public class Scene_assombrado : Scene, ISaveableScene
     private Song _ambienceSong;
     private SoundEffect _chaseEffect;
     private SoundEffectInstance _chaseInstance;
+    private bool _exitInteractionArmed = false;
 
     private const float AMBIENCE_VOLUME = 0.45f;
     private const float CHASE_VOLUME = 0.75f;
@@ -288,10 +289,11 @@ public class Scene_assombrado : Scene, ISaveableScene
         if (_ambienceSong == null)
             return;
 
-        MediaPlayer.Stop();
-        MediaPlayer.IsRepeating = true;
-        Core.Audio.SetSongVolumeScale(AMBIENCE_VOLUME);
-        MediaPlayer.Play(_ambienceSong);
+        Core.Audio.PlaySong(
+            _ambienceSong,
+            AMBIENCE_VOLUME,
+            true
+        );
     }
 
     // Troca o ambiente pelo áudio WAV da perseguição.
@@ -534,7 +536,12 @@ public class Scene_assombrado : Scene, ISaveableScene
         _isNearMask = _raposoChasing && !_maskCollected && MathF.Abs(_playerX - dollCenterX) < DOLL_INTERACTION_RANGE;
         _isAtNextDoor = _passUnlocked && MathF.Abs(_playerX - WORLD_MARGIN) < EXIT_RANGE_NEXT;
         _isAtExit = MathF.Abs(_playerX - _recepcaoExitX) < EXIT_RANGE_RECEPCAO;
-
+        
+        if (!Core.Input.Keyboard.IsKeyDown(Keys.E))
+        {
+            _exitInteractionArmed = true;
+        }
+        
         // A tecla E coleta a máscara, conversa com o Estranho ou permite sair.
         if (_activeTalk == null && Core.Input.Keyboard.WasKeyJustPressed(Keys.E))
         {
@@ -552,9 +559,9 @@ public class Scene_assombrado : Scene, ISaveableScene
                 Core.ChangeScene(new Scene_final());
                 return;
             }
-            else if (_isAtExit)
+            else if (_isAtExit && _exitInteractionArmed)
             {
-                
+
                 GameSession.VigiaDesbloqueouSegundoSprite = true;
                 Core.ChangeScene(new Scene_recepcao(RecepcaoSpawn.FromAssombrado));
                 return;
@@ -727,7 +734,7 @@ public class Scene_assombrado : Scene, ISaveableScene
                 prompt = PRESS_E_COLLECT_MASK;
             else if (_isAtNextDoor)
                 prompt = PRESS_E_NEXT;
-            else if (_isAtExit)
+            else if (_isAtExit && _exitInteractionArmed)
                 prompt = PRESS_E_INTERECT;
 
             if (prompt != null)

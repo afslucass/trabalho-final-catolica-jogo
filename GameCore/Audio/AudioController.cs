@@ -13,7 +13,7 @@ public class AudioController : IDisposable
     // Tracks the volume for song playback when muting and unmuting.
     private float _songVolume = 1.0f;
 
-// Multiplicador aplicado pela música/cena atual.
+    // Multiplicador aplicado pela música/cena atual.
     private float _songVolumeScale = 1.0f;
 
     // Tracks the volume for sound effect playback when muting and unmuting.
@@ -33,21 +33,21 @@ public class AudioController : IDisposable
     /// </remarks>
     public float SongVolume
     {
-    get
-    {
-        if (IsMuted)
-            return 0.0f;
+        get
+        {
+            if (IsMuted)
+                return 0.0f;
 
-        return _songVolume;
-    }
-    set
-    {
-        if (IsMuted)
-            return;
+            return _songVolume;
+        }
+        set
+        {
+            if (IsMuted)
+                return;
 
-        _songVolume = Math.Clamp(value, 0.0f, 1.0f);
-        ApplySongVolume();
-    }
+            _songVolume = Math.Clamp(value, 0.0f, 1.0f);
+            ApplySongVolume();
+        }
     }
 
     /// <summary>
@@ -61,7 +61,7 @@ public class AudioController : IDisposable
     {
         get
         {
-            if(IsMuted)
+            if (IsMuted)
             {
                 return 0.0f;
             }
@@ -70,14 +70,14 @@ public class AudioController : IDisposable
         }
         set
         {
-            if(IsMuted)
+            if (IsMuted)
             {
                 return;
             }
 
             SoundEffect.MasterVolume = Math.Clamp(value, 0.0f, 1.0f);
         }
-    }    
+    }
 
     /// <summary>
     /// Gets a value that indicates if this audio controller has been disposed.
@@ -88,31 +88,31 @@ public class AudioController : IDisposable
     /// Creates a new audio controller instance.
     /// </summary>
     public AudioController()
-    
+
     {
         _activeSoundEffectInstances = new List<SoundEffectInstance>();
-        
+
     }
     public void SetSongVolumeScale(float scale)
     {
-    _songVolumeScale = Math.Clamp(scale, 0.0f, 1.0f);
-    ApplySongVolume();
+        _songVolumeScale = Math.Clamp(scale, 0.0f, 1.0f);
+        ApplySongVolume();
     }
 
 
     private void ApplySongVolume()
     {
-    if (IsMuted)
-    {
-        MediaPlayer.Volume = 0.0f;
-        return;
-    }
+        if (IsMuted)
+        {
+            MediaPlayer.Volume = 0.0f;
+            return;
+        }
 
-    MediaPlayer.Volume = Math.Clamp(
-        _songVolume * _songVolumeScale,
-        0.0f,
-        1.0f
-    );
+        MediaPlayer.Volume = Math.Clamp(
+            _songVolume * _songVolumeScale,
+            0.0f,
+            1.0f
+        );
     }
 
     // Finalizer called when object is collected by the garbage collector.
@@ -183,17 +183,24 @@ public class AudioController : IDisposable
     /// </summary>
     /// <param name="song">The song to play.</param>
     /// <param name="isRepeating">Optionally specify if the song should repeat.  Default is true.</param>
-    public void PlaySong(Song song, bool isRepeating = true)
+    public void PlaySong(
+    Song song,
+    float volumeScale = 1.0f,
+    bool isRepeating = true)
     {
-        // Check if the media player is already playing, if so, stop it.
-        // If we do not stop it, this could cause issues on some platforms
-        if (MediaPlayer.State == MediaState.Playing)
-        {
-            MediaPlayer.Stop();
-        }
+        if (song == null || IsDisposed)
+            return;
+
+        MediaPlayer.Stop();
+
+        SetSongVolumeScale(volumeScale);
+
+        MediaPlayer.IsRepeating = isRepeating;
 
         MediaPlayer.Play(song);
-        MediaPlayer.IsRepeating = isRepeating;
+        System.Diagnostics.Debug.WriteLine(
+    $"[AUDIO] PlaySong chamado. Repetição: {isRepeating}"
+);
     }
 
     /// <summary>
@@ -231,12 +238,12 @@ public class AudioController : IDisposable
     /// </summary>
     public void MuteAudio()
     {
-    _previousSoundEffectVolume = SoundEffect.MasterVolume;
+        _previousSoundEffectVolume = SoundEffect.MasterVolume;
 
-    IsMuted = true;
+        IsMuted = true;
 
-    MediaPlayer.Volume = 0.0f;
-    SoundEffect.MasterVolume = 0.0f;
+        MediaPlayer.Volume = 0.0f;
+        SoundEffect.MasterVolume = 0.0f;
     }
 
     /// <summary>
@@ -244,11 +251,11 @@ public class AudioController : IDisposable
     /// </summary>
     public void UnmuteAudio()
     {
-    IsMuted = false;
+        IsMuted = false;
 
-    ApplySongVolume();
+        ApplySongVolume();
 
-    SoundEffect.MasterVolume = _previousSoundEffectVolume;
+        SoundEffect.MasterVolume = _previousSoundEffectVolume;
     }
 
     /// <summary>
@@ -281,7 +288,7 @@ public class AudioController : IDisposable
     /// <param name="disposing">Indicates whether managed resources should be disposed.</param>
     protected void Dispose(bool disposing)
     {
-        if(IsDisposed)
+        if (IsDisposed)
         {
             return;
         }

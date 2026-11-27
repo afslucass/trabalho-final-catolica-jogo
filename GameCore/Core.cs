@@ -275,6 +275,8 @@ public class Core : Game
         // instance as the currently active scene.
         if (s_activeScene != next)
         {
+            System.Diagnostics.Debug.WriteLine(
+            $"[SCENE] ChangeScene solicitado: {next.GetType().Name}");
             s_nextScene = next;
         }
     }
@@ -284,6 +286,8 @@ public class Core : Game
         // If there is an active scene, dispose of it.
         if (s_activeScene != null)
         {
+            System.Diagnostics.Debug.WriteLine(
+        $"[SCENE] Saindo de: {s_activeScene?.GetType().Name}");
             s_activeScene.Dispose();
         }
 
@@ -295,6 +299,10 @@ public class Core : Game
 
         // Null out the next scene value so it does not trigger a change over and over.
         s_nextScene = null;
+
+        System.Diagnostics.Debug.WriteLine(
+        $"[SCENE] Entrando em: {s_activeScene?.GetType().Name}"
+    );
 
         // If the active scene now is not null, initialize it.
         // Remember, just like with Game, the Initialize call also calls the

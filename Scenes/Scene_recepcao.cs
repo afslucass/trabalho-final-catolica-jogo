@@ -283,11 +283,16 @@ public class Scene_recepcao : Scene, ISaveableScene
         _DoorSoundEffect = Content.Load<SoundEffect>("audio/portas");
         _font = Content.Load<SpriteFont>("fonts/KiwiSoda");
         _ambienceSong = Content.Load<Song>("audio/recepcao_ambience");
-        _introSong = Content.Load<Song>("audio/intro_ambience");
+
+        if (!_startX.HasValue && !GameSession.IntroCutscenePlayed)
+        {
+            _introSong = Content.Load<Song>("audio/intro_ambience");
+        }
+        
         if (_startX.HasValue || GameSession.IntroCutscenePlayed)
-{
-        StartAmbienceAudio();
-}
+        {
+            StartAmbienceAudio();
+        }
         // Fallback: unsupported font characters are replaced with '?')         
         // (or a space) to prevent ArgumentException in MeasureString/DrawString.
         // Add accented characters to the .spritefont CharacterRegion to render them correctly.
@@ -415,12 +420,15 @@ public class Scene_recepcao : Scene, ISaveableScene
     {
         if (_ambienceSong == null || _ambienceStarted)
             return;
+
         _ambienceStarted = true;
-        MediaPlayer.Stop();
-        MediaPlayer.IsRepeating = true;
-        Core.Audio.SetSongVolumeScale(AMBIENCE_VOLUME);
-        MediaPlayer.Play(_ambienceSong);
-        }
+
+        Core.Audio.PlaySong(
+            _ambienceSong,
+            AMBIENCE_VOLUME,
+            true
+        );
+    }
     public override void UnloadContent()
     {
         //MediaPlayer.Stop();
@@ -656,7 +664,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             if (p > 0)
             {
                 result.Append('\n');
-            }   
+            }
 
             float lineWidth = 0f;
             string[] words = paragraphs[p].Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -689,12 +697,17 @@ public class Scene_recepcao : Scene, ISaveableScene
 
     public override void Update(GameTime gameTime)
     {
+        System.Diagnostics.Debug.WriteLine(
+    $"[RECEPÇÃO] PlayerX: {_playerX:F2} | " +
+    $"Caught: {_caught} | " +
+    $"Stage: {GameSession.Stage}"
+);
         base.Update(gameTime);
         if (_showIntroCutscene && !_introMusicFinished && !cutscene.IsPlaying)
-    {
-    _introMusicFinished = true;
-    StartAmbienceAudio();
-    }
+        {
+            _introMusicFinished = true;
+            StartAmbienceAudio();
+        }
 
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
@@ -743,11 +756,11 @@ public class Scene_recepcao : Scene, ISaveableScene
         // Turns the Watcher toward the player's position.
         if (GameSession.VigiaDesbloqueouSegundoSprite)
         {
-        _vigia = _vigiaItch;
+            _vigia = _vigiaItch;
         }
         else
         {
-        _vigia = _playerX < _vigiaX ? _vigiaLeft : _vigiaRight;
+            _vigia = _playerX < _vigiaX ? _vigiaLeft : _vigiaRight;
         }
 
         // Updates the active dialog timer and ends the dialog when it reaches zero.
@@ -872,21 +885,21 @@ public class Scene_recepcao : Scene, ISaveableScene
             _vigiaBobOffset = 0f;
         }
     }
-        private void UpdateJustica(float dt)
-        {
-            if (!_justicaAcompanhando || _activeTalk != null)
-        return;
+    private void UpdateJustica(float dt)
+    {
+        if (!_justicaAcompanhando || _activeTalk != null)
+            return;
 
-            float targetX = _playerX + JUSTICA_FOLLOW_DISTANCE;
+        float targetX = _playerX + JUSTICA_FOLLOW_DISTANCE;
 
-            if (_justicaX > targetX)
+        if (_justicaX > targetX)
         {
             float distance = _justicaX - targetX;
             float step = MathF.Min(JUSTICA_FOLLOW_SPEED * dt, distance);
 
             _justicaX -= step;
         }
-        }
+    }
 
     // Moves the player horizontally only; vertical movement is not supported.
     private void MovePlayer(float dt)
@@ -914,12 +927,12 @@ public class Scene_recepcao : Scene, ISaveableScene
         _playerX = MathHelper.Clamp(_playerX, WORLD_MARGIN, _background.Width - WORLD_MARGIN);
         if (_justicaVisivel)
         {
-        float justiceLeft = _justicaX - _justica.Width * 0.1f;
-        float playerHalfWidth = _player.Width * 0.5f;
+            float justiceLeft = _justicaX - _justica.Width * 0.1f;
+            float playerHalfWidth = _player.Width * 0.5f;
 
-        float maxPlayerX = justiceLeft - playerHalfWidth;
+            float maxPlayerX = justiceLeft - playerHalfWidth;
 
-        _playerX = MathF.Min(_playerX, maxPlayerX);
+            _playerX = MathF.Min(_playerX, maxPlayerX);
         }
     }
 
@@ -1024,7 +1037,7 @@ public class Scene_recepcao : Scene, ISaveableScene
         _vigia.Draw(Core.SpriteBatch,
             new Vector2(_vigiaX - _vigia.Width * 0.5f, GROUND_Y - _vigia.Height + _vigiaBobOffset));
         _player.Draw(Core.SpriteBatch, new Vector2(_playerX - _player.Width * 0.5f, GROUND_Y - _player.Height));
-        
+
         Core.SpriteBatch.End();
 
         // Screen / UI layer

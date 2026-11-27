@@ -44,7 +44,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
     private const string EXPULSION_TEXT =
         "Alma? O Vigia não ficará contente… Por favor, desista e pereça.";
-    
+
     private bool HasNecklace()
     {
         return GameSession.Inventory.Has(GameItems.NecklaceId);
@@ -59,7 +59,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
     // Minimum distance from the world boundaries.
     private const float WORLD_MARGIN = 100f;
-    
+
     // In this game, player-2 faces left and player-1 faces
     // right (verified). Update these names if the sprite sheet changes.
     private const string PLAYER_LEFT_ANIMATION = "player-2-animation";
@@ -186,12 +186,12 @@ public class Scene_caldeirao : Scene, ISaveableScene
         float worldWidth = _background_RECEPCAO.Width;
         _playerX = _recepcaoExitX + 100f;
         _player = _playerRight;
-        
+
         // Set the position of the press E text
         Vector2 size = _font.MeasureString(PRESS_E_INTERECT);
         _pressEInterectPos = new Vector2(Core.GraphicsDevice.PresentationParameters.BackBufferWidth / 2, 1000);
 
-        UpdateCamera(0f, snap: true);       
+        UpdateCamera(0f, snap: true);
     }
 
     public override void LoadContent()
@@ -201,12 +201,9 @@ public class Scene_caldeirao : Scene, ISaveableScene
         TextureAtlas charactersAtlas = TextureAtlas.FromFile(Content, "images/characters-atlas-definition.xml");
         TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
 
-        _caldeiraoSong = Content.Load<Song>("Audio/caldeira");
+        _caldeiraoSong = Core.Content.Load<Song>("Audio/caldeira");
 
-        MediaPlayer.IsRepeating = true;
-        MediaPlayer.Volume = 0.5f;
-
-        MediaPlayer.Play(_caldeiraoSong);
+        Core.Audio.PlaySong(_caldeiraoSong, 1.0f, true);
 
         // Reception background (3840 x 1080), drawn at its native size.
         _background_RECEPCAO = charactersAtlas.CreateSprite("bg-caldeirao");
@@ -355,7 +352,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
             _font,
             Core.GraphicsDevice
         );
-        
+
         List<DialogCutsceneSteps> thirdSteps = new()
         {
             new DialogCutsceneSteps
@@ -481,6 +478,9 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
     public override void Update(GameTime gameTime)
     {
+        System.Diagnostics.Debug.WriteLine(
+    $"[CALDEIRÃO] Update executado"
+);
         base.Update(gameTime);
         // Controla a expulsão do jogador.
         if (_isBeingExpelled)
@@ -515,7 +515,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
         _doctor.Update(gameTime);
         _activeBalence?.Update(gameTime);
 
-        
+
         // Só permite movimentação quando não há cutscene.
         if (_doctor1Sequence == DoctorSequence.None ||
             _doctor1Sequence == DoctorSequence.Completed)
@@ -547,23 +547,23 @@ public class Scene_caldeirao : Scene, ISaveableScene
             _doctor1Sequence == DoctorSequence.Completed))
         {
             if (_isNearHair)
+            {
+                if (GameSession.Inventory.Has(GameItems.NecklaceId))
                 {
-                    if (GameSession.Inventory.Has(GameItems.NecklaceId))
-                    {
-                        _hairWithNecklaceDialog.Start();
+                    _hairWithNecklaceDialog.Start();
 
-                        _doctor1Sequence = DoctorSequence.HairWithNecklaceDialog;
+                    _doctor1Sequence = DoctorSequence.HairWithNecklaceDialog;
 
-                        _dialogActive = true;
-                    }
-                    else
-                    {
-                        _hairWithoutNecklaceDialog.Start();
-
-                        _doctor1Sequence = DoctorSequence.HairWithoutNecklaceDialog;
-                        _dialogActive = true;
-                    }
+                    _dialogActive = true;
                 }
+                else
+                {
+                    _hairWithoutNecklaceDialog.Start();
+
+                    _doctor1Sequence = DoctorSequence.HairWithoutNecklaceDialog;
+                    _dialogActive = true;
+                }
+            }
             else if (_isAtExit && GameSession.CaldeiraoSequenceCompleted)
             {
                 MediaPlayer.Stop();
@@ -627,30 +627,30 @@ public class Scene_caldeirao : Scene, ISaveableScene
                 case DoctorSequence.FirstDialog:
 
                     if (!_doctor1Dialog1.IsRunning)
-                        {
-                            _balanceStartX = _playerX;
+                    {
+                        _balanceStartX = _playerX;
 
-                            // Ponto X depois da balança.
-                            _balanceTargetX = MathHelper.Clamp(
-                                _balenceX + BALANCE_TARGET_OFFSET,
-                                WORLD_MARGIN,
-                                _background_RECEPCAO.Width - WORLD_MARGIN
-                            );
+                        // Ponto X depois da balança.
+                        _balanceTargetX = MathHelper.Clamp(
+                            _balenceX + BALANCE_TARGET_OFFSET,
+                            WORLD_MARGIN,
+                            _background_RECEPCAO.Width - WORLD_MARGIN
+                        );
 
-                            _cutscenePlayerYOffset = 0f;
-                            _riseTimer = 0f;
+                        _cutscenePlayerYOffset = 0f;
+                        _riseTimer = 0f;
 
-                            SetBalanceStage(1);
+                        SetBalanceStage(1);
 
-                            _doctor1Sequence = DoctorSequence.MovingToBalance;
-                        }
+                        _doctor1Sequence = DoctorSequence.MovingToBalance;
+                    }
 
                     break;
 
                 case DoctorSequence.MovingToBalance:
                     UpdatePlayerCutsceneMovement(dt);
                     break;
-                
+
                 case DoctorSequence.RisingOnBalance:
                     UpdatePlayerRiseAnimation(dt);
                     break;
@@ -670,7 +670,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
                         _doctor1Sequence = DoctorSequence.Completed;
                         _dialogActive = false;
                     }
-                    break;               
+                    break;
                 case DoctorSequence.ThirdDialog:
                     if (!_doctor1Dialog3.IsRunning)
                     {
@@ -702,7 +702,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
                         _dialogActive = false;
                     }
                     break;
-                case DoctorSequence.HairWithNecklaceDialog:               
+                case DoctorSequence.HairWithNecklaceDialog:
                     if (!_hairWithNecklaceDialog.IsRunning)
                     {
                         GameSession.Inventory.CollectItem(
@@ -971,7 +971,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
         Matrix worldMatrix =
             Matrix.CreateTranslation(-_cameraX, 0f, 0f) *
             Matrix.CreateScale(scale, scale, 1f);
-        
+
         Core.SpriteBatch.Begin(samplerState: SamplerState.LinearClamp, transformMatrix: worldMatrix);
 
         _background_RECEPCAO.Draw(Core.SpriteBatch, Vector2.Zero);
