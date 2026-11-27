@@ -1042,12 +1042,12 @@ public class Scene_recepcao : Scene, ISaveableScene
             else if (_isAtLeftExit)
             {
                 prompt = _leftExitOpen ? PRESS_E_LEFT : LOCKED_LEFT;
-                promptColor = _leftExitOpen ? Color.Yellow : Color.LightGray;
+                promptColor = _leftExitOpen ? Color.Yellow : Alloy;
             }
             else if (_isAtRightExit)
             {
                 prompt = _rightExitOpen ? PRESS_E_RIGHT : LOCKED_RIGHT;
-                promptColor = _rightExitOpen ? Color.Yellow : Color.LightGray;
+                promptColor = _rightExitOpen ? Color.Yellow : Alloy;
             }
         }
 
