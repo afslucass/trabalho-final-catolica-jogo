@@ -41,7 +41,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
     private const float SPRINT_MULTIPLIER = 1.6f;
 
     // Minimum distance from the world boundaries.
-    private const float WORLD_MARGIN = 200f;
+    private const float WORLD_MARGIN = 100f;
     
     // In this game, player-2 faces left and player-1 faces
     // right (verified). Update these names if the sprite sheet changes.
@@ -77,7 +77,9 @@ public class Scene_caldeirao : Scene, ISaveableScene
         MovingToBalance,
         RisingOnBalance,
         SecondDialog,
-        ThirdDialog
+        ReturningToGround,
+        ThirdDialog,
+        Completed
     }
 
     private DoctorSequence _doctorSequence = DoctorSequence.None;
@@ -90,8 +92,10 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
     // Deslocamento vertical do personagem durante a cutscene.
     private float _cutscenePlayerYOffset;
+    private float _cutscenePlayerXOffset;
 
     // Controle da subida.
+    private int _riseStage = 0;
     private float _riseTimer;
 
     private const float CUTSCENE_PLAYER_SPEED = 220f;
@@ -100,10 +104,15 @@ public class Scene_caldeirao : Scene, ISaveableScene
     private const float BALANCE_TARGET_OFFSET = 180f;
 
     // Quantos pixels o personagem sobe.
-    private const float PLAYER_RISE_HEIGHT = 60f;
+    private const float PLAYER_RISE_HEIGHT1 = 240f;
+    private const float PLAYER_RISE_HEIGHT2 = 300f;
+    private const float PLAYER_RISE_HEIGHT3 = 350f;
+    private const float PLAYER_RISE_X1 = 5f;
+    private const float PLAYER_RISE_X2 = 70f;
+    private const float PLAYER_RISE_X3 = 90f;
 
     // Duração da subida em segundos.
-    private const float PLAYER_RISE_DURATION = 0.6f;
+    private const float PLAYER_RISE_DURATION = 1.5f;
 
     // Sprite da balança que será desenhado no momento.
     private AnimatedSprite _activeBalence;
@@ -358,9 +367,14 @@ public class Scene_caldeirao : Scene, ISaveableScene
                 case DoctorSequence.SecondDialog:
                     if (!_doctorDialog2.IsRunning)
                     {
-                        _doctorSequence = DoctorSequence.None;
-                        _dialogActive = false;
+                        _doctorSequence = DoctorSequence.ReturningToGround;
+                        _riseTimer = 0f;
                     }
+                    break;
+                case DoctorSequence.ReturningToGround:
+                    UpdatePlayerReturnAnimation(dt);
+                    break;
+                case DoctorSequence.Completed:
                     break;
             }
 
@@ -453,23 +467,111 @@ public class Scene_caldeirao : Scene, ISaveableScene
         float progress = _riseTimer / PLAYER_RISE_DURATION;
         progress = MathHelper.Clamp(progress, 0f, 1f);
 
-        // Suaviza o movimento de subida.
+        // Suaviza o movimento da animação.
         float easedProgress = progress * progress * (3f - 2f * progress);
 
-        // O personagem sobe gradualmente.
-        _cutscenePlayerYOffset = PLAYER_RISE_HEIGHT * easedProgress;
+        switch (_riseStage)
+        {
+            case 0:
+                // Primeiro movimento: sobe até a altura 1.
+                _cutscenePlayerYOffset =
+                    MathHelper.Lerp(0f, PLAYER_RISE_HEIGHT1, easedProgress);
+                _cutscenePlayerXOffset =
+                    MathHelper.Lerp(0f, PLAYER_RISE_X1, easedProgress);
 
-        // A subida terminou.
+                if (progress >= 1f)
+                {
+                    _cutscenePlayerYOffset = PLAYER_RISE_HEIGHT1;
+                    _cutscenePlayerXOffset = PLAYER_RISE_X1;
+
+                    SetBalanceStage(2);
+
+                    _riseStage = 1;
+                    _riseTimer = 0f;
+                }
+                break;
+
+            case 1:
+                // Segundo movimento: sobe até a altura 2.
+                _cutscenePlayerYOffset =
+                    MathHelper.Lerp(
+                        PLAYER_RISE_HEIGHT1,
+                        PLAYER_RISE_HEIGHT2,
+                        easedProgress
+                    );
+                _cutscenePlayerXOffset =
+                    MathHelper.Lerp(
+                        PLAYER_RISE_X1,
+                        PLAYER_RISE_X2,
+                        easedProgress
+                    );
+
+                if (progress >= 1f)
+                {
+                    _cutscenePlayerYOffset = PLAYER_RISE_HEIGHT2;
+                    _cutscenePlayerXOffset = PLAYER_RISE_X2;
+
+                    SetBalanceStage(3);
+
+                    _riseStage = 2;
+                    _riseTimer = 0f;
+                }
+                break;
+
+            case 2:
+                // Terceiro movimento: sobe até a altura 3.
+                _cutscenePlayerYOffset =
+                    MathHelper.Lerp(
+                        PLAYER_RISE_HEIGHT2,
+                        PLAYER_RISE_HEIGHT3,
+                        easedProgress
+                    );
+                _cutscenePlayerXOffset =
+                    MathHelper.Lerp(
+                        PLAYER_RISE_X2,
+                        PLAYER_RISE_X3,
+                        easedProgress
+                    );
+
+                if (progress >= 1f)
+                {
+                    _cutscenePlayerYOffset = PLAYER_RISE_HEIGHT3;
+                    _cutscenePlayerXOffset = PLAYER_RISE_X3;
+
+                    _riseStage = 3;
+
+                    _doctorDialog2.Start();
+                    _doctorSequence = DoctorSequence.SecondDialog;
+                }
+                break;
+        }
+    }
+    private void UpdatePlayerReturnAnimation(float dt)
+    {
+        _riseTimer += dt;
+
+        float progress = _riseTimer / PLAYER_RISE_DURATION;
+        progress = MathHelper.Clamp(progress, 0f, 1f);
+
+        // Suaviza o movimento.
+        float easedProgress = progress * progress * (3f - 2f * progress);
+
+        // O personagem desce até o chão.
+        _cutscenePlayerYOffset = MathHelper.Lerp(
+            PLAYER_RISE_HEIGHT3,
+            0f,
+            easedProgress
+        );
+
+        // A animação terminou.
         if (progress >= 1f)
         {
-            _cutscenePlayerYOffset = PLAYER_RISE_HEIGHT;
+            _cutscenePlayerYOffset = 0f;
 
-            // Troca o sprite da balança somente depois da subida.
-            SetBalanceStage(2);
+            _riseTimer = 0f;
 
-            // Começa o segundo diálogo.
-            _doctorDialog2.Start();
-            _doctorSequence = DoctorSequence.SecondDialog;
+            _doctorSequence = DoctorSequence.Completed;
+            // Coloque aqui o próximo estado da sua sequência.
         }
     }
 
@@ -528,7 +630,13 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
         _activeBalence?.Draw(Core.SpriteBatch, new Vector2(_balenceX - _activeBalence.Width * 0.5f, GROUND_Y - _activeBalence.Height));
         _doctor.Draw(Core.SpriteBatch, new Vector2(_doctorX - _doctor.Width * -1.5f, GROUND_Y - _doctor.Height));
-        _player.Draw(Core.SpriteBatch, new Vector2(_playerX - _player.Width * 0.5f, GROUND_Y - _player.Height - _cutscenePlayerYOffset));
+        _player.Draw(
+            Core.SpriteBatch,
+            new Vector2(
+                _playerX - _player.Width * 0.5f + _cutscenePlayerXOffset,
+                GROUND_Y - _player.Height - _cutscenePlayerYOffset
+            )
+        );
 
         Core.SpriteBatch.End();
 
