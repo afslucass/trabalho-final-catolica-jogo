@@ -155,6 +155,7 @@ public class Scene_recepcao : Scene, ISaveableScene
     // UI and audio resources.
     private SpriteFont _font;
     private SoundEffect _DoorSoundEffect;
+    private bool _ambienceStarted;
     private Song _introSong;
     private const float INTRO_VOLUME = 0.45f;
     private Song _ambienceSong;
@@ -321,7 +322,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 7000,
+            durationInMillis = 6000,
         });
         steps.Add(new Step
         {
@@ -330,7 +331,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 9000,
+            durationInMillis = 8000,
         });
         steps.Add(new Step
         {
@@ -339,7 +340,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 7000,
+            durationInMillis = 6000,
         });
         steps.Add(new Step
         {
@@ -348,7 +349,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 9000,
+            durationInMillis = 8000,
         });
         steps.Add(new Step
         {
@@ -357,7 +358,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 7000,
+            durationInMillis = 6000,
         });
         steps.Add(new Step
         {
@@ -366,7 +367,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 7000,
+            durationInMillis = 6000,
         });
         steps.Add(new Step
         {
@@ -405,18 +406,12 @@ public class Scene_recepcao : Scene, ISaveableScene
     }
     private void StartAmbienceAudio()
     {
-    if (_ambienceSong == null)
+    if (_ambienceSong == null || _ambienceStarted)
         return;
-
+    _ambienceStarted = true;
     MediaPlayer.Stop();
     MediaPlayer.IsRepeating = true;
-
-    MediaPlayer.Volume = MathHelper.Clamp(
-        Core.Audio.SongVolume * AMBIENCE_VOLUME,
-        0f,
-        1f
-    );
-
+    Core.Audio.SetSongVolumeScale(AMBIENCE_VOLUME);
     MediaPlayer.Play(_ambienceSong);
     }
     public override void UnloadContent()
@@ -910,6 +905,15 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         // Clamps the player within the background boundaries.
         _playerX = MathHelper.Clamp(_playerX, WORLD_MARGIN, _background.Width - WORLD_MARGIN);
+        if (_justicaVisivel)
+        {
+        float justiceLeft = _justicaX - _justica.Width * 0.1f;
+        float playerHalfWidth = _player.Width * 0.5f;
+
+        float maxPlayerX = justiceLeft - playerHalfWidth;
+
+        _playerX = MathF.Min(_playerX, maxPlayerX);
+        }
     }
 
     // Calculates the scale needed to match the background height to the window.
