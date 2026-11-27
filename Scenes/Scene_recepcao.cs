@@ -156,8 +156,8 @@ public class Scene_recepcao : Scene, ISaveableScene
 
     // UI and audio resources.
     private SpriteFont _font;
-    private SoundEffect _collectSoundEffect;
     private SoundEffect _DoorSoundEffect;
+    private bool _ambienceStarted;
     private Song _introSong;
     private const float INTRO_VOLUME = 0.45f;
     private Song _ambienceSong;
@@ -281,7 +281,6 @@ public class Scene_recepcao : Scene, ISaveableScene
         _pixel = new Texture2D(Core.GraphicsDevice, 1, 1);
         _pixel.SetData(new[] { Color.White });
 
-        _collectSoundEffect = Content.Load<SoundEffect>("audio/collect");
         _DoorSoundEffect = Content.Load<SoundEffect>("audio/portas");
         _font = Content.Load<SpriteFont>("fonts/KiwiSoda");
         _ambienceSong = Content.Load<Song>("audio/recepcao_ambience");
@@ -313,7 +312,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 3000,
+            durationInMillis = 6000,
         });
         steps.Add(new Step
         {
@@ -322,7 +321,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 6000,
         });
         steps.Add(new Step
         {
@@ -331,7 +330,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 6000,
         });
         steps.Add(new Step
         {
@@ -340,7 +339,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 8000,
         });
         steps.Add(new Step
         {
@@ -358,7 +357,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 8000,
         });
         steps.Add(new Step
         {
@@ -385,7 +384,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 6000,
         });
 
         _showIntroCutscene = !GameSession.IntroCutscenePlayed;
@@ -415,6 +414,7 @@ public class Scene_recepcao : Scene, ISaveableScene
     }
     private void StartAmbienceAudio()
     {
+<<<<<<< HEAD
         System.Diagnostics.Debug.WriteLine(
             $"StartAmbienceAudio chamado | Estado: {MediaPlayer.State}"
         );
@@ -436,6 +436,15 @@ public class Scene_recepcao : Scene, ISaveableScene
         );
 
         MediaPlayer.Play(_ambienceSong);
+=======
+    if (_ambienceSong == null || _ambienceStarted)
+        return;
+    _ambienceStarted = true;
+    MediaPlayer.Stop();
+    MediaPlayer.IsRepeating = true;
+    Core.Audio.SetSongVolumeScale(AMBIENCE_VOLUME);
+    MediaPlayer.Play(_ambienceSong);
+>>>>>>> 29ade1c0143c0c0c8174b14095cdf2fc62c2b640
     }
     public override void UnloadContent()
     {
@@ -814,7 +823,6 @@ public class Scene_recepcao : Scene, ISaveableScene
             else if (_isNearNecklace)
             {
                 GameSession.Inventory.CollectItem(GameItems.NecklaceId, GameItems.NecklaceIcon);
-                Core.Audio.PlaySoundEffect(_collectSoundEffect);
             }
             else if (_isAtLeftExit && _leftExitOpen)
             {
@@ -929,6 +937,15 @@ public class Scene_recepcao : Scene, ISaveableScene
 
         // Clamps the player within the background boundaries.
         _playerX = MathHelper.Clamp(_playerX, WORLD_MARGIN, _background.Width - WORLD_MARGIN);
+        if (_justicaVisivel)
+        {
+        float justiceLeft = _justicaX - _justica.Width * 0.1f;
+        float playerHalfWidth = _player.Width * 0.5f;
+
+        float maxPlayerX = justiceLeft - playerHalfWidth;
+
+        _playerX = MathF.Min(_playerX, maxPlayerX);
+        }
     }
 
     // Calculates the scale needed to match the background height to the window.

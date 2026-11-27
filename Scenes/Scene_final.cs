@@ -49,49 +49,49 @@ public class Scene_final : Scene
         {
             caption = Wrap("Alma… Que bom conhecê-lo, estava te aguardando. Muito esperto, se utilizar de um disfarce para enganar meus funcionários…"),
             hasCaptionFadeIn = true,
-            durationInMillis = 3500,
+            durationInMillis = 5500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
         });
         steps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Eu sabia que esse dia chegaria, não tenho arrependimentos. Por favor, perdoe minhas criações, assim como eu, são imperfeitos, eles temem."),
             hasCaptionFadeIn = true,
-            durationInMillis = 3500,
+            durationInMillis = 5500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
         });
         steps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Você deve estar confuso, certo?"),
             hasCaptionFadeIn = true,
-            durationInMillis = 3500,
+            durationInMillis = 5500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
         });
         steps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Bom… Assim como você Alma, já fui um relés humano, como você, também acordei naquela estação, também adentrei o Limbo."),
             hasCaptionFadeIn = true,
-            durationInMillis = 3500,
+            durationInMillis = 5500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
         });
         steps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Naquela época, porém, fui recebido por outras entidades, esses vagões também tinham outra aparência."),
             hasCaptionFadeIn = true,
-            durationInMillis = 3500,
+            durationInMillis = 5500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
         });
         steps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("Assim como você, fui julgado com a pesagem de uma pena, e, impressionantemente, também tive o mesmo peso que a  pena."),
             hasCaptionFadeIn = true,
-            durationInMillis = 3500,
+            durationInMillis = 5500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
         });
         steps.Add(new DialogCutsceneSteps
         {
             caption = Wrap("E então, a Morte veio me receber. Entenda Alma, eu não sou um ser infinito, a Morte precisa de uma sucessão, e o escolhido sempre pesará o mesmo que a pena."),
             hasCaptionFadeIn = true,
-            durationInMillis = 3500,
+            durationInMillis = 7500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
         });
 
@@ -99,7 +99,7 @@ public class Scene_final : Scene
         {
             caption = Wrap("A antiga Morte teve essa mesma conversa comigo… E, ao aceitar meu novo papel, uma nova era se iniciou. "),
             hasCaptionFadeIn = true,
-            durationInMillis = 3500,
+            durationInMillis = 5500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
         });
 
@@ -107,7 +107,7 @@ public class Scene_final : Scene
         {
             caption = Wrap("Entendo que errei em alguns pontos com a humanidade, mas como disse, não tenho arrependimentos, estou preparada para o meu fim."),
             hasCaptionFadeIn = true,
-            durationInMillis = 3500,
+            durationInMillis = 6500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
         });
         
@@ -115,7 +115,7 @@ public class Scene_final : Scene
         {
             caption = Wrap("E então Alma, você aceita seu destino? Tomar meu lugar como morte e dar início a nova era?"),
             hasCaptionFadeIn = true,
-            durationInMillis = 3500,
+            durationInMillis = 5500,
             spriteAnimations = new List<DialogCutsceneSpriteAnimation>()   
         });
 
