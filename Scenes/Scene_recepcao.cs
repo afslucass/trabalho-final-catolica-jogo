@@ -157,7 +157,6 @@ public class Scene_recepcao : Scene, ISaveableScene
     // UI and audio resources.
     private SpriteFont _font;
     private SoundEffect _DoorSoundEffect;
-    private bool _ambienceStarted;
     private Song _introSong;
     private const float INTRO_VOLUME = 0.45f;
     private Song _ambienceSong;
@@ -414,38 +413,14 @@ public class Scene_recepcao : Scene, ISaveableScene
     }
     private void StartAmbienceAudio()
     {
-<<<<<<< HEAD
-        System.Diagnostics.Debug.WriteLine(
-            $"StartAmbienceAudio chamado | Estado: {MediaPlayer.State}"
-        );
-        if (_ambienceSong == null)
+        if (_ambienceSong == null || _ambienceStarted)
             return;
-
-        // Se a música já foi iniciada nesta cena, não reinicia
-        if (_ambienceStarted)
-            return;
-
         _ambienceStarted = true;
-
+        MediaPlayer.Stop();
         MediaPlayer.IsRepeating = true;
-
-        MediaPlayer.Volume = MathHelper.Clamp(
-            Core.Audio.SongVolume * AMBIENCE_VOLUME,
-            0f,
-            1f
-        );
-
+        Core.Audio.SetSongVolumeScale(AMBIENCE_VOLUME);
         MediaPlayer.Play(_ambienceSong);
-=======
-    if (_ambienceSong == null || _ambienceStarted)
-        return;
-    _ambienceStarted = true;
-    MediaPlayer.Stop();
-    MediaPlayer.IsRepeating = true;
-    Core.Audio.SetSongVolumeScale(AMBIENCE_VOLUME);
-    MediaPlayer.Play(_ambienceSong);
->>>>>>> 29ade1c0143c0c0c8174b14095cdf2fc62c2b640
-    }
+        }
     public override void UnloadContent()
     {
         //MediaPlayer.Stop();
