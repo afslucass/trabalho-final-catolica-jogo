@@ -68,6 +68,8 @@ public static class GameSession
 
     // Em que ponto da história o jogador está (libera portas e muda os diálogos).
     public static StoryStage Stage { get; set; } = StoryStage.Intro;
+    // Sequencia de animação da sala do Caldeirão.
+    public static bool CaldeiraoSequenceCompleted = false;
 
     public static bool VigiaDesbloqueouSegundoSprite { get; set; } = false;
     // Quantas vezes o jogador tentou sair do vagão assombrado sem a máscara
