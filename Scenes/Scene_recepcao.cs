@@ -154,7 +154,6 @@ public class Scene_recepcao : Scene, ISaveableScene
 
     // UI and audio resources.
     private SpriteFont _font;
-    private SoundEffect _collectSoundEffect;
     private SoundEffect _DoorSoundEffect;
     private Song _introSong;
     private const float INTRO_VOLUME = 0.45f;
@@ -273,7 +272,6 @@ public class Scene_recepcao : Scene, ISaveableScene
         _pixel = new Texture2D(Core.GraphicsDevice, 1, 1);
         _pixel.SetData(new[] { Color.White });
 
-        _collectSoundEffect = Content.Load<SoundEffect>("audio/collect");
         _DoorSoundEffect = Content.Load<SoundEffect>("audio/portas");
         _font = Content.Load<SpriteFont>("fonts/KiwiSoda");
         _ambienceSong = Content.Load<Song>("audio/recepcao_ambience");
@@ -296,7 +294,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = true,
             hasTextTransition = true,
-            durationInMillis = 5000,
+            durationInMillis = 6000,
         });
         steps.Add(new Step
         {
@@ -305,7 +303,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 3000,
+            durationInMillis = 6000,
         });
         steps.Add(new Step
         {
@@ -314,7 +312,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 6000,
         });
         steps.Add(new Step
         {
@@ -323,7 +321,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 7000,
         });
         steps.Add(new Step
         {
@@ -332,7 +330,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 9000,
         });
         steps.Add(new Step
         {
@@ -341,7 +339,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 7000,
         });
         steps.Add(new Step
         {
@@ -350,7 +348,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 9000,
         });
         steps.Add(new Step
         {
@@ -359,7 +357,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 7000,
         });
         steps.Add(new Step
         {
@@ -368,7 +366,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 7000,
         });
         steps.Add(new Step
         {
@@ -377,7 +375,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 5000,
+            durationInMillis = 6000,
         });
 
         _showIntroCutscene = !GameSession.IntroCutscenePlayed;
@@ -798,7 +796,6 @@ public class Scene_recepcao : Scene, ISaveableScene
             else if (_isNearNecklace)
             {
                 GameSession.Inventory.CollectItem(GameItems.NecklaceId, GameItems.NecklaceIcon);
-                Core.Audio.PlaySoundEffect(_collectSoundEffect);
             }
             else if (_isAtLeftExit && _leftExitOpen)
             {
