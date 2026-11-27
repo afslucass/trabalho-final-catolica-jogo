@@ -11,6 +11,7 @@ using GameCore.Graphics;
 using GameCore.Scenes;
 using GameCore.Cutscene;
 using GameCore.Save;
+using Microsoft.Xna.Framework.Media;
 
 namespace TestGame.Scenes;
 
@@ -18,6 +19,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
 {
     private Sprite _background_RECEPCAO;
     private float _cameraX;
+    private Song _caldeiraoSong;
     public string SaveId => "caldeirao";
 
 
@@ -173,6 +175,13 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
         TextureAtlas charactersAtlas = TextureAtlas.FromFile(Content, "images/characters-atlas-definition.xml");
         TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
+
+        _caldeiraoSong = Content.Load<Song>("Audio/caldeira");
+
+        MediaPlayer.IsRepeating = true;
+        MediaPlayer.Volume = 0.5f;
+
+        MediaPlayer.Play(_caldeiraoSong);
 
         // Reception background (3840 x 1080), drawn at its native size.
         _background_RECEPCAO = charactersAtlas.CreateSprite("bg-caldeirao");
@@ -372,6 +381,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
             }
             else if (_isAtExit)
             {
+                MediaPlayer.Stop();
                 // Volta pela porta da direita da recepção (a Caldeira fica à direita dela).
                 Core.ChangeScene(new Scene_recepcao(RecepcaoSpawn.FromCaldeira));
                 return;
