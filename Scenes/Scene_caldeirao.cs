@@ -50,9 +50,12 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
     // ---------- Doctor ----------
     private AnimatedSprite _doctor;
+    private AnimatedSprite _doctor1;
+    private AnimatedSprite _doctor2;
     private float _doctorX;
 
-    private const string DOCTOR_ANIMATION = "doctor-animation";
+    private const string DOCTOR_ANIMATION1 = "doctor-animation";
+    private const string DOCTOR_ANIMATION2 = "doctor-seated-animation";
 
     private SpriteFont _font;
     // Balence
@@ -67,9 +70,9 @@ public class Scene_caldeirao : Scene, ISaveableScene
     Color Alloy = new Color(201, 149, 0);
 
     // ---------- Dialogue ----------
-    private DialogCutsceneController _doctorDialog1;
-    private DialogCutsceneController _doctorDialog2;
-    private DialogCutsceneController _doctorDialog3;
+    private DialogCutsceneController _doctor1Dialog1;
+    private DialogCutsceneController _doctor1Dialog2;
+    private DialogCutsceneController _doctor1Dialog3;
     private enum DoctorSequence
     {
         None,
@@ -82,7 +85,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
         Completed
     }
 
-    private DoctorSequence _doctorSequence = DoctorSequence.None;
+    private DoctorSequence _doctor1Sequence = DoctorSequence.None;
 
     // Posição X onde o personagem vai parar, depois da balança.
     private float _balanceTargetX;
@@ -183,9 +186,29 @@ public class Scene_caldeirao : Scene, ISaveableScene
         _playerRight.Scale = Vector2.One;
         _player = _playerRight;
 
-        _doctor = charactersAtlas.CreateAnimatedSprite(DOCTOR_ANIMATION);
-        _doctor.Scale = Vector2.One;
-        _doctorX = _background_RECEPCAO.Width * 0.0f;
+        // Sprite do médico na primeira entrada.
+        _doctor1 = charactersAtlas.CreateAnimatedSprite(DOCTOR_ANIMATION1);
+        _doctor1.Scale = Vector2.One;
+
+        // Sprite do médico na segunda entrada.
+        _doctor2 = charactersAtlas.CreateAnimatedSprite(DOCTOR_ANIMATION2);
+        _doctor2.Scale = Vector2.One;
+
+        // Define qual médico será utilizado.
+        if (GameSession.CaldeiraoSequenceCompleted)
+        {
+            _doctor = _doctor2;
+
+            // Nova posição do médico.
+            _doctorX = _background_RECEPCAO.Width * 0.36f;
+        }
+        else
+        {
+            _doctor = _doctor1;
+
+            // Posição original do médico.
+            _doctorX = _background_RECEPCAO.Width * -0.1f;
+        }
 
         _balence1 = charactersAtlas.CreateAnimatedSprite(BALENCE_ANIMATION1);
         _balence1.Scale = Vector2.One;
@@ -231,7 +254,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
             }
         };
 
-        _doctorDialog1 = new DialogCutsceneController(
+        _doctor1Dialog1 = new DialogCutsceneController(
             doctorSteps,
             Alloy,
             _font,
@@ -272,8 +295,36 @@ public class Scene_caldeirao : Scene, ISaveableScene
             }
         };
 
-        _doctorDialog2 = new DialogCutsceneController(
+        _doctor1Dialog2 = new DialogCutsceneController(
             secondSteps,
+            Alloy,
+            _font,
+            Core.GraphicsDevice
+        );
+        
+        List<DialogCutsceneSteps> thirdSteps = new()
+        {
+            new DialogCutsceneSteps
+            {
+                caption = "...",
+                hasCaptionFadeIn = true,
+                durationInMillis = 3500
+            },
+            new DialogCutsceneSteps
+            {
+                caption = "Bem corajoso da sua parte, Alma. Tentar roubar a minha roupa perante a minha cara.",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            },
+            new DialogCutsceneSteps
+            {
+                caption = "Você não deveria estar aqui, volte para o estranho, ele está te esperando.",
+                hasCaptionFadeIn = true,
+                durationInMillis = 4000
+            },
+        };
+        _doctor1Dialog3 = new DialogCutsceneController(
+            thirdSteps,
             Alloy,
             _font,
             Core.GraphicsDevice
@@ -301,9 +352,11 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
         float balenceDrawX = _balenceX - _balence1.Width * -2.0f;
 
-        float doctorDrawX = _doctorX - _doctor.Width * -1.5f;
+        // Calcula a posição do médico ativo.
+        float doctorDrawX = _doctorX + _doctor.Width * 1.5f;
+        // Calcula o centro do médico ativo.
         float doctorCenterX = doctorDrawX + _doctor.Width / 2f;
-
+        // Verifica se o jogador está próximo do médico.
         _isNearDoctor = MathF.Abs(_playerX - doctorCenterX) < 400f;
 
         // O item 3 só pode ser coletado depois de iniciar o puzzle.
@@ -323,20 +376,33 @@ public class Scene_caldeirao : Scene, ISaveableScene
                 Core.ChangeScene(new Scene_recepcao(RecepcaoSpawn.FromCaldeira));
                 return;
             }
-            else if (_isNearDoctor)
+            else if (_isNearDoctor && !_dialogActive)
             {
-                _doctorDialog1.Start();
-                _doctorSequence = DoctorSequence.FirstDialog;
-                _dialogActive = true;
+                // Primeira visita: inicia a sequência da balança.
+                if (!GameSession.CaldeiraoSequenceCompleted)
+                {
+                    _doctor1Dialog1.Start();
+
+                    _doctor1Sequence = DoctorSequence.FirstDialog;
+                    _dialogActive = true;
+                }
+                // Segunda visita: inicia o terceiro diálogo.
+                else
+                {
+                    _doctor1Dialog3.Start();
+
+                    _doctor1Sequence = DoctorSequence.ThirdDialog;
+                    _dialogActive = true;
+                }
             }
         }
-        if (_doctorSequence != DoctorSequence.None)
+        if (_doctor1Sequence != DoctorSequence.None)
         {
-            switch (_doctorSequence)
+            switch (_doctor1Sequence)
             {
                 case DoctorSequence.FirstDialog:
 
-                    if (!_doctorDialog1.IsRunning)
+                    if (!_doctor1Dialog1.IsRunning)
                         {
                             _balanceStartX = _playerX;
 
@@ -352,7 +418,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
                             SetBalanceStage(1);
 
-                            _doctorSequence = DoctorSequence.MovingToBalance;
+                            _doctor1Sequence = DoctorSequence.MovingToBalance;
                         }
 
                     break;
@@ -365,14 +431,21 @@ public class Scene_caldeirao : Scene, ISaveableScene
                     UpdatePlayerRiseAnimation(dt);
                     break;
                 case DoctorSequence.SecondDialog:
-                    if (!_doctorDialog2.IsRunning)
+                    if (!_doctor1Dialog2.IsRunning)
                     {
-                        _doctorSequence = DoctorSequence.ReturningToGround;
+                        _doctor1Sequence = DoctorSequence.ReturningToGround;
                         _riseTimer = 0f;
                     }
                     break;
                 case DoctorSequence.ReturningToGround:
                     UpdatePlayerReturnAnimation(dt);
+                    break;
+                case DoctorSequence.ThirdDialog:
+                    if (!_doctor1Dialog3.IsRunning)
+                    {
+                        _doctor1Sequence = DoctorSequence.Completed;
+                        _dialogActive = false;
+                    }
                     break;
                 case DoctorSequence.Completed:
                     break;
@@ -442,7 +515,7 @@ public class Scene_caldeirao : Scene, ISaveableScene
             _riseTimer = 0f;
             _cutscenePlayerYOffset = 0f;
 
-            _doctorSequence = DoctorSequence.RisingOnBalance;
+            _doctor1Sequence = DoctorSequence.RisingOnBalance;
 
             return;
         }
@@ -540,8 +613,8 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
                     _riseStage = 3;
 
-                    _doctorDialog2.Start();
-                    _doctorSequence = DoctorSequence.SecondDialog;
+                    _doctor1Dialog2.Start();
+                    _doctor1Sequence = DoctorSequence.SecondDialog;
                 }
                 break;
         }
@@ -570,8 +643,12 @@ public class Scene_caldeirao : Scene, ISaveableScene
 
             _riseTimer = 0f;
 
-            _doctorSequence = DoctorSequence.Completed;
-            // Coloque aqui o próximo estado da sua sequência.
+            // Registra que a primeira sequência foi concluída.
+            GameSession.CaldeiraoSequenceCompleted = true;
+
+            _doctor1Sequence = DoctorSequence.Completed;
+            // Libera novamente a interação com o médico.
+            _dialogActive = false;
         }
     }
 
@@ -689,13 +766,17 @@ public class Scene_caldeirao : Scene, ISaveableScene
         Core.SpriteBatch.End();
 
         Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
-        if (_doctorSequence == DoctorSequence.FirstDialog)
+        if (_doctor1Sequence == DoctorSequence.FirstDialog)
         {
-            _doctorDialog1?.Draw(Core.SpriteBatch, gameTime);
+            _doctor1Dialog1?.Draw(Core.SpriteBatch, gameTime);
         }
-        else if (_doctorSequence == DoctorSequence.SecondDialog)
+        else if (_doctor1Sequence == DoctorSequence.SecondDialog)
         {
-            _doctorDialog2?.Draw(Core.SpriteBatch, gameTime);
+            _doctor1Dialog2?.Draw(Core.SpriteBatch, gameTime);
+        }
+        else if (_doctor1Sequence == DoctorSequence.ThirdDialog)
+        {
+            _doctor1Dialog3?.Draw(Core.SpriteBatch, gameTime);
         }
         Core.SpriteBatch.End();
 
