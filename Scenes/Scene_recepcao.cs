@@ -295,7 +295,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = true,
             hasTextTransition = true,
-            durationInMillis = 6000,
+            durationInMillis = 5000,
         });
         steps.Add(new Step
         {
@@ -340,7 +340,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 6000,
+            durationInMillis = 5000,
         });
         steps.Add(new Step
         {
@@ -358,7 +358,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 6000,
+            durationInMillis = 5000,
         });
         steps.Add(new Step
         {
@@ -367,7 +367,7 @@ public class Scene_recepcao : Scene, ISaveableScene
             fadeDuration = 1000,
             hasImageTransition = false,
             hasTextTransition = false,
-            durationInMillis = 6000,
+            durationInMillis = 5000,
         });
         steps.Add(new Step
         {
